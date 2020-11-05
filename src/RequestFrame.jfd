@@ -1,0 +1,107 @@
+JFDML JFormDesigner: "7.0.2.6.321" Java: "11.0.6" encoding: "UTF-8"
+
+new FormModel {
+	contentType: "form/swing"
+	root: new FormRoot {
+		add( new FormWindow( "javax.swing.JFrame", new FormLayoutManager( class java.awt.BorderLayout ) ) {
+			name: "this"
+			add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class org.jdesktop.swingx.VerticalLayout ) {
+				"gap": 5
+			} ) {
+				name: "mainPanel"
+				add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class java.awt.GridLayout ) {
+					"columns": 1
+				} ) {
+					name: "panel3"
+				} )
+				add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class java.awt.GridLayout ) {
+					"columns": 2
+					"hgap": 10
+				} ) {
+					name: "inputPanel"
+					add( new FormComponent( "javax.swing.JTextField" ) {
+						name: "cardNumTextFeild"
+					} )
+					add( new FormComponent( "javax.swing.JButton" ) {
+						name: "buttonDoWork"
+						"text": "查询"
+						addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "buttonDoWorkActionPerformed", true ) )
+					} )
+				} )
+				add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class java.awt.GridLayout ) {
+					"columns": 2
+					"hgap": 10
+				} ) {
+					name: "inputPanel2"
+					add( new FormComponent( "javax.swing.JTextField" ) {
+						name: "fileTextFiled"
+						"editable": false
+						"enabled": false
+					} )
+					add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class java.awt.GridLayout ) {
+						"columns": 2
+						"hgap": 10
+					} ) {
+						name: "panel2"
+						add( new FormComponent( "javax.swing.JButton" ) {
+							name: "buttonInport"
+							"text": "批量导入"
+						} )
+						add( new FormComponent( "javax.swing.JButton" ) {
+							name: "buttonDoManyWork"
+							"text": "批量查询"
+							"enabled": false
+						} )
+					} )
+				} )
+				add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class java.awt.GridLayout ) {
+					"columns": 2
+				} ) {
+					name: "optionPanel"
+					add( new FormComponent( "javax.swing.JCheckBoxMenuItem" ) {
+						name: "checkBoxRepeat"
+						"text": "轮询"
+						addEvent( new FormEvent( "javax.swing.event.ChangeListener", "stateChanged", "checkBoxRepeatStateChanged", true ) )
+					} )
+					add( new FormComponent( "javax.swing.JCheckBoxMenuItem" ) {
+						name: "checkBoxProxy"
+						"text": "开启代理"
+						addEvent( new FormEvent( "javax.swing.event.ChangeListener", "stateChanged", "checkBoxProxyStateChanged", true ) )
+					} )
+				} )
+				add( new FormComponent( "javax.swing.JLabel" ) {
+					name: "labelHint"
+					"text": " "
+				} )
+				add( new FormContainer( "javax.swing.JScrollPane", new FormLayoutManager( class javax.swing.JScrollPane ) ) {
+					name: "dataPanel"
+					add( new FormComponent( "javax.swing.JTable" ) {
+						name: "table1"
+						"model": new com.jformdesigner.model.SwingTableModel( new java.util.Vector, new java.util.Vector {
+							add( "车牌号" )
+							add( "停车场" )
+							add( "缴费情况" )
+						}, new java.util.Vector {
+							add( null )
+							add( null )
+							add( null )
+						}, new java.util.Vector {
+							add( null )
+							add( null )
+							add( null )
+						}, new java.util.Vector {
+							add( null )
+							add( null )
+							add( null )
+						} )
+					} )
+				} )
+			}, new FormLayoutConstraints( class java.lang.String ) {
+				"value": "Center"
+			} )
+		}, new FormLayoutConstraints( null ) {
+			"location": new java.awt.Point( 0, 0 )
+			"size": new java.awt.Dimension( 580, 420 )
+		} )
+	}
+}

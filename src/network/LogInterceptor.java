@@ -1,3 +1,4 @@
+package network;
 
 import java.io.IOException;
 
@@ -11,7 +12,7 @@ import okhttp3.Request;
 
 public class LogInterceptor implements Interceptor {
 
-    public static String TAG = "LogInterceptor";
+    public static String TAG = "network.LogInterceptor";
 
     @Override
     public okhttp3.Response intercept(Chain chain) throws IOException {

@@ -1,3 +1,8 @@
+package network
+
+import config.Config
+import entity.CarResult
+import entity.TestParam
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import retrofit2.Call
@@ -22,6 +27,7 @@ object Network {
 
     private const val DEFAULT_TIMEOUT = 10
     var isLoopQuerying = false
+    var isQueryFinish = false
 
 
     private fun provideMainRetrofit():Retrofit{
@@ -93,6 +99,7 @@ object Network {
     interface BaseCallBack<T> {
         fun requestSuccess(t: T, times:Int, successCount:Int, failedCount:Int)
         fun requestFail(message: String?)
+        fun requestOnGoing(times: Int, count:Int)
     }
 
     interface RespApi {
@@ -104,8 +111,12 @@ object Network {
         querySingleFormServer(carNo, callBack)
     }
 
+    fun queryMany(carNoList:ArrayList<String>, callBack: BaseCallBack<ArrayList<CarResult>>){
+        queryLoopFormServer(carNoList, callBack, 1)
+    }
+
     fun queryLoop(carNoList:ArrayList<String>, callBack: BaseCallBack<ArrayList<CarResult>>){
-        Thread(QueryThread(carNoList,callBack)).start()
+        Thread(QueryThread(carNoList, callBack)).start()
     }
 
     private fun querySingleFormServer(carNo:String, callBack: BaseCallBack<CarResult>){
@@ -116,15 +127,17 @@ object Network {
         val mCall: Call<CarResult> = api.getCarInfo(testParam)
         mCall.enqueue(object : Callback<CarResult> {
             override fun onResponse(call: Call<CarResult>, response: Response<CarResult>) {
+                response.body()
                 if (null == response.body()) {
-                    return
-                }
-                when(response.body()!!.resultCode){
-                    0 ->{
-                        callBack.requestSuccess(response.body()!!,0,0,0)
-                    }
-                    else ->{
-                        callBack.requestFail("Ip被封禁")
+                    callBack.requestFail("无返回")
+                }else{
+                    when(response.body()!!.resultCode){
+                        0 ->{
+                            callBack.requestSuccess(response.body()!!,0,0,0)
+                        }
+                        else ->{
+                            callBack.requestFail("Ip被封禁")
+                        }
                     }
                 }
             }
@@ -132,7 +145,6 @@ object Network {
             override fun onFailure(call: Call<CarResult>, t: Throwable) {
                 callBack.requestFail(t.message)
             }
-
         })
     }
 
@@ -142,40 +154,49 @@ object Network {
         var current = 0
         var successCount = 0
         var failedCount = 0
-        carNoList.forEach {
-            val testParam = TestParam()
-            testParam.carNo = it
-            val api: RespApi = provideMainRetrofit().create(RespApi::class.java)
-            val mCall: Call<CarResult> = api.getCarInfo(testParam)
-            mCall.enqueue(object : Callback<CarResult> {
-                override fun onResponse(call: Call<CarResult>, response: Response<CarResult>) {
-                    current++
-                    if (null == response.body()) {
-                        failedCount++
-                        return
-                    }
-                    when(response.body()!!.resultCode){
-                        0 ->{
-                            successCount++
-                            resultList.add(response.body()!!)
-                        }
-                        else ->{
+        isQueryFinish = false
+        run loop@{
+            carNoList.forEach {
+                val testParam = TestParam()
+                testParam.carNo = it
+                val api: RespApi = provideMainRetrofit().create(RespApi::class.java)
+                val mCall: Call<CarResult> = api.getCarInfo(testParam)
+                mCall.enqueue(object : Callback<CarResult> {
+                    override fun onResponse(call: Call<CarResult>, response: Response<CarResult>) {
+                        current++
+                        callBack.requestOnGoing(requestTimes, current)
+                        if (null == response.body()) {
                             failedCount++
+                        }else{
+                            when(response.body()!!.resultCode){
+                                0 ->{
+                                    successCount++
+                                    resultList.add(response.body()!!)
+                                }
+                                else ->{
+                                    failedCount++
+                                }
+                            }
+                        }
+                        if (current == total){
+                            isQueryFinish = true
+                            callBack.requestSuccess(resultList, requestTimes, successCount, failedCount)
                         }
                     }
-                    if (current == total){
-                        callBack.requestSuccess(resultList, requestTimes, successCount, failedCount)
-                    }
-                }
 
-                override fun onFailure(call: Call<CarResult>, t: Throwable) {
-                    current++
-                    failedCount++
-                    if (current == total){
-                        callBack.requestSuccess(resultList, requestTimes, successCount, failedCount)
+                    override fun onFailure(call: Call<CarResult>, t: Throwable) {
+                        current++
+                        failedCount++
+                        callBack.requestOnGoing(requestTimes, current)
+                        if (current == total){
+                            isQueryFinish = true
+                            callBack.requestSuccess(resultList, requestTimes, successCount, failedCount)
+                        }
                     }
-                }
-            })
+                })
+                System.out.println("start request=======================")
+                Thread.sleep(1000)
+            }
         }
     }
 
@@ -183,7 +204,7 @@ object Network {
         var requestTimes:Int = 0
         override fun run() {
             if (Config.isLoop){
-                while (isLoopQuerying){
+                while (isLoopQuerying && isQueryFinish){
                     requestTimes++
                     queryLoopFormServer(carNoList, callBack, requestTimes)
                     Thread.sleep(5000)

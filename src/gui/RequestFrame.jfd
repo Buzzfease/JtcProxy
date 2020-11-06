@@ -44,13 +44,14 @@ new FormModel {
 					} ) {
 						name: "panel2"
 						add( new FormComponent( "javax.swing.JButton" ) {
-							name: "buttonInport"
+							name: "buttonImport"
 							"text": "批量导入"
+							addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "buttonImportActionPerformed", true ) )
 						} )
 						add( new FormComponent( "javax.swing.JButton" ) {
 							name: "buttonDoManyWork"
 							"text": "批量查询"
-							"enabled": false
+							addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "buttonDoManyWorkActionPerformed", true ) )
 						} )
 					} )
 				} )

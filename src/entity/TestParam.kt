@@ -1,4 +1,4 @@
-
+package entity
 /**
  * created by Buzz
  * on 2020/11/4

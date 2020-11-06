@@ -1,7 +1,7 @@
 package config
 
 object Config {
-    var isLoop:Boolean = false
     var proxyOpen:Boolean = false
-    var queryTime:Int = 100
+    var queryTime:Long = 100L
+    var loopTime:Long = 5000L
 }

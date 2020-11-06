@@ -70,7 +70,7 @@ data class Obj(
         val policy_minute: String,
         val quickExit: String,
         val receiptOperator: Any,
-        val retcode: String,
+        val retcode: Int,
         val retmsg: String,
         val rule_remark: String,
         val rule_source: String,

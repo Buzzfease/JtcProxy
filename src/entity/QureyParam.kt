@@ -4,7 +4,7 @@ package entity
  * on 2020/11/4
  * email lmx2060918@126.com
  */
-data class TestParam(
+data class QureyParam(
     var applictionType: String = "APP",
     var applictionVersion: String = "40203",
     var carNo: String = "陕-A123456",

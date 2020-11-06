@@ -11,7 +11,7 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.*;
 
 import config.Config;
-import entity.CarResult;
+import entity.InfoResult;
 import network.Network;
 import org.jdesktop.swingx.*;
 import utils.CommonUtil;
@@ -32,27 +32,7 @@ public class RequestFrame extends JFrame {
         initComponents();
     }
 
-    private void setStateSingleLoop(){
-        Network.INSTANCE.setLoopQuerying(true);
-        buttonDoWork.setEnabled(true);
-        buttonDoWork.setText("停止查询");
-        buttonDoManyWork.setEnabled(false);
-        buttonDoManyWork.setText("批量查询");
-        buttonImport.setEnabled(false);
-        labelHint.setText("查询中...");
-    }
-
-    private void setStateManyLoop(){
-        Network.INSTANCE.setLoopQuerying(true);
-        buttonDoWork.setEnabled(false);
-        buttonDoWork.setText("查询");
-        buttonDoManyWork.setEnabled(true);
-        buttonDoManyWork.setText("停止查询");
-        buttonImport.setEnabled(false);
-    }
-
     private void setStateReady(){
-        Network.INSTANCE.setLoopQuerying(false);
         buttonDoWork.setEnabled(true);
         buttonDoWork.setText("查询");
         buttonDoManyWork.setEnabled(true);
@@ -72,136 +52,78 @@ public class RequestFrame extends JFrame {
         requestCount = 1;
         successCount = 0;
         failedCount = 0;
-        if (Network.INSTANCE.isLoopQuerying()){
-            //stop
-            setStateReady();
-        }else{
-            String handleResult = CommonUtil.INSTANCE.handleCarNo(cardNumTextFeild.getText());
-            if (handleResult.equals("")){
-                labelHint.setText("请输入正确的车牌号");
-                return;
-            }
-            //start
-            if (Config.INSTANCE.isLoop()){
-                setStateSingleLoop();
-                ArrayList<String> carNoList = new ArrayList<>();
-                carNoList.add(handleResult);
-                Network.INSTANCE.queryLoop(carNoList, new Network.BaseCallBack<ArrayList<CarResult>>() {
-                    @Override
-                    public void requestSuccess(ArrayList<CarResult> carResults, int times, int successCount, int failedCount) {
-                        labelHint.setText("第"+times+"轮查询结果: "+successCount+"条查询成功,"+failedCount+"条查询失败");
-                        for(CarResult bean:carResults){
-                            DefaultTableModel model = (DefaultTableModel) table1.getModel();
-                            model.setRowCount(0);
-
-                            Vector<String> v = new Vector<>();
-                            v.add(bean.getObj().getCarNo());
-                            v.add(bean.getObj().getParkName());
-                            v.add(String.valueOf(bean.getObj().getTotalFee()));
-
-                            model.addRow(v);
-                        }
-                    }
-
-                    @Override
-                    public void requestOnGoing(int times,int count) {
-                        labelHint.setText("第"+times+"轮查询中: 已查询,"+count+"条数据");
-                    }
-
-                    @Override
-                    public void requestFail(String message) {
-
-                    }
-                });
-            }else{
-                labelHint.setText("查询中...");
-                Network.INSTANCE.querySingle(handleResult, new Network.BaseCallBack<CarResult>() {
-                    @Override
-                    public void requestSuccess(CarResult carResult, int times, int successCount, int failedCount) {
-                        labelHint.setText("查询成功");
-                        DefaultTableModel model = (DefaultTableModel) table1.getModel();
-                        model.setRowCount(0);
-
-                        Vector<String> v = new Vector<>();
-                        v.add(carResult.getObj().getCarNo());
-                        v.add(carResult.getObj().getParkName());
-                        v.add(String.valueOf(carResult.getObj().getTotalFee()));
-
-                        model.addRow(v);
-                    }
-
-                    @Override
-                    public void requestFail(String message) {
-                        labelHint.setText(message);
-                    }
-
-                    @Override
-                    public void requestOnGoing(int times, int count) {
-
-                    }
-                });
-            }
+        String handleResult = CommonUtil.INSTANCE.handleCarNo(cardNumTextFeild.getText());
+        if (handleResult.equals("")){
+            labelHint.setText("请输入正确的车牌号");
+            return;
         }
+        //start
+        labelHint.setText("查询中...");
+        Network.INSTANCE.querySingle(handleResult, new Network.BaseCallBack<InfoResult>() {
+            @Override
+            public void requestSuccess(InfoResult infoResult, int successCount, int failedCount) {
+                labelHint.setText("查询成功");
+                DefaultTableModel model = (DefaultTableModel) table1.getModel();
+                model.setRowCount(0);
+
+                Vector<String> v = new Vector<>();
+                if (infoResult.getResultCode() == -1){
+                    v.add(infoResult.getConstCarNo());
+                    v.add("未入场");
+                    v.add("未停车");
+                }else{
+                    v.add(infoResult.getDataItems().get(0).getAttributes().getCarNo());
+                    v.add(infoResult.getDataItems().get(0).getAttributes().getParkName());
+                    v.add(infoResult.getDataItems().get(0).getAttributes().getStartTime());
+                }
+                model.addRow(v);
+            }
+
+            @Override
+            public void requestFail(String message) {
+                labelHint.setText(message);
+            }
+
+            @Override
+            public void requestOnGoing(int count) {
+
+            }
+        });
     }
 
     private void buttonDoManyWorkActionPerformed(ActionEvent e) {
-        if (Network.INSTANCE.isLoopQuerying()){
-            //stop
-            setStateReady();
-        }else {
-            if (carNoList == null ||carNoList.isEmpty()) {
-                labelHint.setText("请导入正确的车牌数据");
-                return;
-            }
-            //start
-            if (Config.INSTANCE.isLoop()){
-                setStateManyLoop();
-                Network.INSTANCE.queryLoop(carNoList, new Network.BaseCallBack<ArrayList<CarResult>>() {
+        if (carNoList == null ||carNoList.isEmpty()) {
+            labelHint.setText("请导入正确的车牌数据");
+            return;
+        }
+        //start
+        labelHint.setText("查询中...");
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                Network.INSTANCE.queryMany(carNoList, new Network.BaseCallBack<ArrayList<InfoResult>>() {
                     @Override
-                    public void requestSuccess(ArrayList<CarResult> carResults, int times, int successCount, int failedCount) {
-                        labelHint.setText("第"+times+"轮查询结果: "+successCount+"条查询成功,"+failedCount+"条查询失败");
-                        DefaultTableModel model = (DefaultTableModel) table1.getModel();
-                        model.setRowCount(0);
-
-                        for(CarResult bean:carResults){
-                            Vector<String> v = new Vector<>();
-                            v.add(bean.getObj().getCarNo());
-                            v.add(bean.getObj().getParkName());
-                            v.add(String.valueOf(bean.getObj().getTotalFee()));
-                            model.addRow(v);
-                        }
-                    }
-
-                    @Override
-                    public void requestOnGoing(int times,int count) {
-                        labelHint.setText("第"+times+"轮查询中: 已查询,"+count+"条数据");
-                    }
-
-                    @Override
-                    public void requestFail(String message) {
-
-                    }
-                });
-            }else{
-                labelHint.setText("查询中...");
-                Network.INSTANCE.queryMany(carNoList, new Network.BaseCallBack<ArrayList<CarResult>>() {
-                    @Override
-                    public void requestSuccess(ArrayList<CarResult> carResults, int times, int successCount, int failedCount) {
+                    public void requestSuccess(ArrayList<InfoResult> infoResults, int successCount, int failedCount) {
                         labelHint.setText("共查询"+carNoList.size()+"条数据: "+successCount+"条查询成功,"+failedCount+"条查询失败");
                         DefaultTableModel model = (DefaultTableModel) table1.getModel();
                         model.setRowCount(0);
-
-                        for(CarResult bean:carResults){
+                        for(InfoResult bean:infoResults){
                             Vector<String> v = new Vector<>();
-                            v.add(bean.getObj().getCarNo());
-                            v.add(bean.getObj().getParkName());
-                            v.add(String.valueOf(bean.getObj().getTotalFee()));
+                            if (bean.getResultCode() == -1){
+                                v.add(bean.getConstCarNo());
+                                v.add("未入场");
+                                v.add("未停车");
+                            }else{
+                                v.add(bean.getDataItems().get(0).getAttributes().getCarNo());
+                                v.add(bean.getDataItems().get(0).getAttributes().getParkName());
+                                v.add(bean.getDataItems().get(0).getAttributes().getStartTime());
+                            }
                             model.addRow(v);
                         }
                     }
 
                     @Override
-                    public void requestOnGoing(int times, int count) {
+                    public void requestOnGoing(int count) {
                         labelHint.setText("共"+carNoList.size()+"条数据: 已查询,"+count+"条数据");
                     }
 
@@ -211,16 +133,7 @@ public class RequestFrame extends JFrame {
                     }
                 });
             }
-        }
-    }
-
-    private void checkBoxRepeatStateChanged(ChangeEvent e) {
-        JCheckBoxMenuItem checkBox = (JCheckBoxMenuItem) e.getSource();
-        if (checkBox.isSelected()){
-            Config.INSTANCE.setLoop(true);
-        }else {
-            Config.INSTANCE.setLoop(false);
-        }
+        }).start();
     }
 
     private void checkBoxProxyStateChanged(ChangeEvent e) {
@@ -288,6 +201,10 @@ public class RequestFrame extends JFrame {
         showFileOpenDialog(this);
     }
 
+    private void buttonConfigActionPerformed(ActionEvent e) {
+        ConfigFrame frame = new ConfigFrame();
+    }
+
     private void initComponents() {
         // JFormDesigner - Component initialization - DO NOT MODIFY  //GEN-BEGIN:initComponents
         // Generated using JFormDesigner Evaluation license - unknown
@@ -302,8 +219,8 @@ public class RequestFrame extends JFrame {
         buttonImport = new JButton();
         buttonDoManyWork = new JButton();
         optionPanel = new JPanel();
-        checkBoxRepeat = new JCheckBoxMenuItem();
         checkBoxProxy = new JCheckBoxMenuItem();
+        buttonConfig = new JButton();
         labelHint = new JLabel();
         dataPanel = new JScrollPane();
         table1 = new JTable();
@@ -314,13 +231,11 @@ public class RequestFrame extends JFrame {
 
         //======== mainPanel ========
         {
-            mainPanel.setBorder(new javax.swing.border.CompoundBorder(new javax.swing.border.TitledBorder(new javax.
-            swing.border.EmptyBorder(0,0,0,0), "JFor\u006dDesi\u0067ner \u0045valu\u0061tion",javax.swing.border
-            .TitledBorder.CENTER,javax.swing.border.TitledBorder.BOTTOM,new java.awt.Font("Dia\u006cog"
-            ,java.awt.Font.BOLD,12),java.awt.Color.red),mainPanel. getBorder
-            ()));mainPanel. addPropertyChangeListener(new java.beans.PropertyChangeListener(){@Override public void propertyChange(java
-            .beans.PropertyChangeEvent e){if("bord\u0065r".equals(e.getPropertyName()))throw new RuntimeException
-            ();}});
+            mainPanel.setBorder(new javax.swing.border.CompoundBorder(new javax.swing.border.TitledBorder(new javax.swing.border.EmptyBorder(
+            0,0,0,0), "JF\u006frmDes\u0069gner \u0045valua\u0074ion",javax.swing.border.TitledBorder.CENTER,javax.swing.border.TitledBorder
+            .BOTTOM,new java.awt.Font("D\u0069alog",java.awt.Font.BOLD,12),java.awt.Color.
+            red),mainPanel. getBorder()));mainPanel. addPropertyChangeListener(new java.beans.PropertyChangeListener(){@Override public void propertyChange(java.
+            beans.PropertyChangeEvent e){if("\u0062order".equals(e.getPropertyName()))throw new RuntimeException();}});
             mainPanel.setLayout(new VerticalLayout(5));
 
             //======== panel3 ========
@@ -372,15 +287,15 @@ public class RequestFrame extends JFrame {
             {
                 optionPanel.setLayout(new GridLayout(1, 2));
 
-                //---- checkBoxRepeat ----
-                checkBoxRepeat.setText("\u8f6e\u8be2");
-                checkBoxRepeat.addChangeListener(e -> checkBoxRepeatStateChanged(e));
-                optionPanel.add(checkBoxRepeat);
-
                 //---- checkBoxProxy ----
                 checkBoxProxy.setText("\u5f00\u542f\u4ee3\u7406");
                 checkBoxProxy.addChangeListener(e -> checkBoxProxyStateChanged(e));
                 optionPanel.add(checkBoxProxy);
+
+                //---- buttonConfig ----
+                buttonConfig.setText("\u914d\u7f6e");
+                buttonConfig.addActionListener(e -> buttonConfigActionPerformed(e));
+                optionPanel.add(buttonConfig);
             }
             mainPanel.add(optionPanel);
 
@@ -422,8 +337,8 @@ public class RequestFrame extends JFrame {
     private JButton buttonImport;
     private JButton buttonDoManyWork;
     private JPanel optionPanel;
-    private JCheckBoxMenuItem checkBoxRepeat;
     private JCheckBoxMenuItem checkBoxProxy;
+    private JButton buttonConfig;
     private JLabel labelHint;
     private JScrollPane dataPanel;
     private JTable table1;

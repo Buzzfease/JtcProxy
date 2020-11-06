@@ -60,14 +60,14 @@ new FormModel {
 				} ) {
 					name: "optionPanel"
 					add( new FormComponent( "javax.swing.JCheckBoxMenuItem" ) {
-						name: "checkBoxRepeat"
-						"text": "轮询"
-						addEvent( new FormEvent( "javax.swing.event.ChangeListener", "stateChanged", "checkBoxRepeatStateChanged", true ) )
-					} )
-					add( new FormComponent( "javax.swing.JCheckBoxMenuItem" ) {
 						name: "checkBoxProxy"
 						"text": "开启代理"
 						addEvent( new FormEvent( "javax.swing.event.ChangeListener", "stateChanged", "checkBoxProxyStateChanged", true ) )
+					} )
+					add( new FormComponent( "javax.swing.JButton" ) {
+						name: "buttonConfig"
+						"text": "配置"
+						addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "buttonConfigActionPerformed", true ) )
 					} )
 				} )
 				add( new FormComponent( "javax.swing.JLabel" ) {

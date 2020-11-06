@@ -1,0 +1,91 @@
+JFDML JFormDesigner: "7.0.2.6.321" Java: "11.0.6" encoding: "UTF-8"
+
+new FormModel {
+	contentType: "form/swing"
+	root: new FormRoot {
+		add( new FormWindow( "javax.swing.JFrame", new FormLayoutManager( class java.awt.BorderLayout ) ) {
+			name: "this"
+			add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class java.awt.BorderLayout ) ) {
+				name: "dialogPane"
+				"border": new javax.swing.border.EmptyBorder( 12, 12, 12, 12 )
+				add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class java.awt.GridLayout ) ) {
+					name: "contentPanel"
+					add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class org.jdesktop.swingx.VerticalLayout ) {
+						"gap": 10
+					} ) {
+						name: "panel3"
+						add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class java.awt.GridLayout ) {
+							"columns": 2
+						} ) {
+							name: "panel4"
+							add( new FormComponent( "javax.swing.JLabel" ) {
+								name: "label1"
+								"text": "轮询间隔(ms)"
+							} )
+							add( new FormComponent( "javax.swing.JTextField" ) {
+								name: "textFieldLoopMs"
+								"text": "5000"
+							} )
+						} )
+						add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class java.awt.GridLayout ) {
+							"columns": 2
+						} ) {
+							name: "panel5"
+							add( new FormComponent( "javax.swing.JLabel" ) {
+								name: "label2"
+								"text": "查询间隔(ms)"
+							} )
+							add( new FormComponent( "javax.swing.JTextField" ) {
+								name: "textFiledQureyMs"
+								"text": "100"
+							} )
+						} )
+						add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class java.awt.GridLayout ) {
+							"columns": 2
+						} ) {
+							name: "panel6"
+							add( new FormComponent( "javax.swing.JLabel" ) {
+								name: "label3"
+								"text": "同步本机IP至白名单"
+							} )
+							add( new FormComponent( "javax.swing.JButton" ) {
+								name: "buttonIp"
+								"text": "开始同步"
+							} )
+						} )
+						add( new FormComponent( "javax.swing.JLabel" ) {
+							name: "labelHint"
+							"text": " "
+						} )
+					} )
+				}, new FormLayoutConstraints( class java.lang.String ) {
+					"value": "Center"
+				} )
+				add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class java.awt.GridBagLayout ) {
+					"$columnSpecs": "0:1.0, 80"
+					"$rowSpecs": "0, 0"
+					"$hGap": 5
+					"$vGap": 5
+				} ) {
+					name: "buttonBar"
+					"border": new javax.swing.border.EmptyBorder( 12, 0, 0, 0 )
+					add( new FormComponent( "javax.swing.JButton" ) {
+						name: "okButton"
+						"text": "完成"
+						addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "okButtonActionPerformed", true ) )
+					}, new FormLayoutConstraints( class com.jformdesigner.runtime.GridBagConstraintsEx ) {
+						"gridx": 1
+						"gridy": 1
+					} )
+				}, new FormLayoutConstraints( class java.lang.String ) {
+					"value": "South"
+				} )
+			}, new FormLayoutConstraints( class java.lang.String ) {
+				"value": "Center"
+			} )
+		}, new FormLayoutConstraints( null ) {
+			"location": new java.awt.Point( 95, 70 )
+			"size": new java.awt.Dimension( 400, 300 )
+		} )
+	}
+}

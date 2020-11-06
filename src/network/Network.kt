@@ -2,7 +2,9 @@ package network
 
 import config.Config
 import entity.CarResult
-import entity.TestParam
+import entity.InfoParam
+import entity.InfoResult
+import entity.QureyParam
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import retrofit2.Call
@@ -27,13 +29,20 @@ object Network {
 
     private const val DEFAULT_TIMEOUT = 10
     var isLoopQuerying = false
-    var isQueryFinish = false
 
 
     private fun provideMainRetrofit():Retrofit{
         return Retrofit.Builder()
                 .addConverterFactory(GsonConverterFactory.create())
                 .baseUrl("https://sytgate.jslife.com.cn/core-gateway/")
+                .client(provideTrustAllClient())
+                .build()
+    }
+
+    private fun provideInfoRetrofit():Retrofit{
+        return Retrofit.Builder()
+                .addConverterFactory(GsonConverterFactory.create())
+                .baseUrl("http://jparking.jslife.com.cn/jparking-service/")
                 .client(provideTrustAllClient())
                 .build()
     }
@@ -97,47 +106,58 @@ object Network {
      * 网络请求数据返回基类
      */
     interface BaseCallBack<T> {
-        fun requestSuccess(t: T, times:Int, successCount:Int, failedCount:Int)
+        fun requestSuccess(t: T, successCount:Int, failedCount:Int)
         fun requestFail(message: String?)
-        fun requestOnGoing(times: Int, count:Int)
+        fun requestOnGoing(count:Int)
     }
 
-    interface RespApi {
-        @POST("order/carno/pay/appindex")
-        fun getCarInfo(@Body param: TestParam): Call<CarResult>
-    }
-
-    fun querySingle(carNo:String, callBack: BaseCallBack<CarResult>){
+    fun querySingle(carNo:String, callBack: BaseCallBack<InfoResult>){
         querySingleFormServer(carNo, callBack)
     }
 
-    fun queryMany(carNoList:ArrayList<String>, callBack: BaseCallBack<ArrayList<CarResult>>){
-        queryLoopFormServer(carNoList, callBack, 1)
+    fun queryMany(carNoList:ArrayList<String>, callBack: BaseCallBack<ArrayList<InfoResult>>){
+        queryLoopFormServer(carNoList, callBack)
     }
 
-    fun queryLoop(carNoList:ArrayList<String>, callBack: BaseCallBack<ArrayList<CarResult>>){
-        Thread(QueryThread(carNoList, callBack)).start()
-    }
 
-    private fun querySingleFormServer(carNo:String, callBack: BaseCallBack<CarResult>){
-        val testParam = TestParam()
+    private fun querySingleFormServer(carNo:String, callBack: BaseCallBack<InfoResult>){
+        val testParam = QureyParam()
         testParam.carNo = carNo
 
         val api: RespApi = provideMainRetrofit().create(RespApi::class.java)
         val mCall: Call<CarResult> = api.getCarInfo(testParam)
         mCall.enqueue(object : Callback<CarResult> {
             override fun onResponse(call: Call<CarResult>, response: Response<CarResult>) {
-                response.body()
-                if (null == response.body()) {
-                    callBack.requestFail("无返回")
-                }else{
-                    when(response.body()!!.resultCode){
-                        0 ->{
-                            callBack.requestSuccess(response.body()!!,0,0,0)
+                when(response.body()!!.resultCode){
+                    0 ->{
+                        if (response.body()!!.obj.retcode == 0){
+                            //真实存在
+                            val infoParam = InfoParam()
+                            infoParam.carNo = response.body()!!.obj.carNo
+                            infoParam.orderType = response.body()!!.obj.orderType
+                            infoParam.parkCode = response.body()!!.obj.parkCode
+                            infoParam.userId = testParam.userId
+
+                            val api2: RespApi = provideInfoRetrofit().create(RespApi::class.java)
+                            val mCall2: Call<InfoResult> = api2.getCarRealInfo(infoParam)
+                            mCall2.enqueue(object : Callback<InfoResult>{
+                                override fun onResponse(call: Call<InfoResult>, response: Response<InfoResult>) {
+                                    callBack.requestSuccess(response.body()!!,0,0)
+                                }
+                                override fun onFailure(call: Call<InfoResult>, t: Throwable) {
+                                    val constResult = InfoResult()
+                                    constResult.constCarNo = infoParam.carNo
+                                    callBack.requestSuccess(constResult,0,0)
+                                }
+                            })
+                        }else{
+                            val constResult = InfoResult()
+                            constResult.constCarNo = testParam.carNo
+                            callBack.requestSuccess(constResult,0,0)
                         }
-                        else ->{
-                            callBack.requestFail("Ip被封禁")
-                        }
+                    }
+                    else ->{
+                        callBack.requestFail("Ip被封禁")
                     }
                 }
             }
@@ -148,68 +168,105 @@ object Network {
         })
     }
 
-    fun queryLoopFormServer(carNoList:ArrayList<String>, callBack: BaseCallBack<ArrayList<CarResult>>, requestTimes:Int){
-        val resultList = ArrayList<CarResult>()
+    private fun queryLoopFormServer(carNoList:ArrayList<String>, callBack: BaseCallBack<ArrayList<InfoResult>>){
+        val resultList = ArrayList<InfoResult>()
         val total = carNoList.size
         var current = 0
         var successCount = 0
         var failedCount = 0
-        isQueryFinish = false
+
         run loop@{
             carNoList.forEach {
-                val testParam = TestParam()
+                val testParam = QureyParam()
                 testParam.carNo = it
                 val api: RespApi = provideMainRetrofit().create(RespApi::class.java)
                 val mCall: Call<CarResult> = api.getCarInfo(testParam)
                 mCall.enqueue(object : Callback<CarResult> {
                     override fun onResponse(call: Call<CarResult>, response: Response<CarResult>) {
-                        current++
-                        callBack.requestOnGoing(requestTimes, current)
-                        if (null == response.body()) {
-                            failedCount++
-                        }else{
-                            when(response.body()!!.resultCode){
-                                0 ->{
+                        when(response.body()!!.resultCode){
+                            0 ->{
+                                if (response.body()!!.obj.retcode == 0){
+                                    //真实存在
+                                    val infoParam = InfoParam()
+                                    infoParam.carNo = response.body()!!.obj.carNo
+                                    infoParam.orderType = response.body()!!.obj.orderType
+                                    infoParam.parkCode = response.body()!!.obj.parkCode
+                                    infoParam.userId = testParam.userId
+
+                                    val api2: RespApi = provideInfoRetrofit().create(RespApi::class.java)
+                                    val mCall2: Call<InfoResult> = api2.getCarRealInfo(infoParam)
+                                    mCall2.enqueue(object : Callback<InfoResult>{
+                                        override fun onResponse(call: Call<InfoResult>, response: Response<InfoResult>) {
+                                            current++
+                                            successCount++
+                                            callBack.requestOnGoing(current)
+                                            when(response.body()!!.resultCode){
+                                                0 ->{
+                                                    resultList.add(response.body()!!)
+                                                }
+                                                else ->{
+                                                    val constResult = InfoResult()
+                                                    constResult.constCarNo = infoParam.carNo
+                                                    resultList.add(constResult)
+                                                }
+                                            }
+                                            if (current == total){
+                                                callBack.requestSuccess(resultList, successCount, failedCount)
+                                            }
+                                        }
+                                        override fun onFailure(call: Call<InfoResult>, t: Throwable) {
+                                            current++
+                                            failedCount++
+                                            callBack.requestOnGoing(current)
+                                            if (current == total){
+                                                callBack.requestSuccess(resultList, successCount, failedCount)
+                                            }
+                                        }
+                                    })
+                                }else{
+                                    current++
                                     successCount++
-                                    resultList.add(response.body()!!)
-                                }
-                                else ->{
-                                    failedCount++
+                                    callBack.requestOnGoing(current)
+                                    val constResult = InfoResult()
+                                    constResult.constCarNo = it
+                                    resultList.add(constResult)
+                                    if (current == total){
+                                        callBack.requestSuccess(resultList, successCount, failedCount)
+                                    }
                                 }
                             }
-                        }
-                        if (current == total){
-                            isQueryFinish = true
-                            callBack.requestSuccess(resultList, requestTimes, successCount, failedCount)
+                            else ->{
+                                //ip被封禁
+                                current++
+                                failedCount++
+                                callBack.requestOnGoing(current)
+                                if (current == total){
+                                    callBack.requestSuccess(resultList, successCount, failedCount)
+                                }
+                            }
                         }
                     }
 
                     override fun onFailure(call: Call<CarResult>, t: Throwable) {
+                        //代理出问题或网络不通
                         current++
                         failedCount++
-                        callBack.requestOnGoing(requestTimes, current)
+                        callBack.requestOnGoing(current)
                         if (current == total){
-                            isQueryFinish = true
-                            callBack.requestSuccess(resultList, requestTimes, successCount, failedCount)
+                            callBack.requestSuccess(resultList, successCount, failedCount)
                         }
                     }
                 })
-                System.out.println("start request=======================")
-                Thread.sleep(1000)
+                Thread.sleep(Config.queryTime)
             }
         }
     }
 
-    class QueryThread(var carNoList:ArrayList<String>, var callBack: BaseCallBack<ArrayList<CarResult>>) :Runnable{
-        var requestTimes:Int = 0
-        override fun run() {
-            if (Config.isLoop){
-                while (isLoopQuerying && isQueryFinish){
-                    requestTimes++
-                    queryLoopFormServer(carNoList, callBack, requestTimes)
-                    Thread.sleep(5000)
-                }
-            }
-        }
+    interface RespApi {
+        @POST("order/carno/pay/appindex")
+        fun getCarInfo(@Body param: QureyParam): Call<CarResult>
+
+        @POST("order/carno/pay")
+        fun getCarRealInfo(@Body param: InfoParam): Call<InfoResult>
     }
 }

@@ -33,11 +33,37 @@ new FormModel {
 							name: "panel6"
 							add( new FormComponent( "javax.swing.JLabel" ) {
 								name: "label3"
-								"text": "同步本机IP至白名单"
+								"text": "本机IP"
+							} )
+							add( new FormComponent( "javax.swing.JTextField" ) {
+								name: "textFiledIp"
+								"text": "117.35.132.242"
+							} )
+						} )
+						add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class java.awt.GridLayout ) {
+							"columns": 2
+						} ) {
+							name: "panel7"
+							add( new FormComponent( "javax.swing.JLabel" ) {
+								name: "label4"
+								"text": "豌豆AppKey"
+							} )
+							add( new FormComponent( "javax.swing.JTextField" ) {
+								name: "textFeildAppKey"
+								"text": "dc7f645191c1ee1eb679d922d0885ac5"
+							} )
+						} )
+						add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class java.awt.GridLayout ) {
+							"columns": 2
+						} ) {
+							name: "panel8"
+							add( new FormComponent( "javax.swing.JLabel" ) {
+								name: "label5"
+								"text": " "
 							} )
 							add( new FormComponent( "javax.swing.JButton" ) {
-								name: "buttonIp"
-								"text": "开始同步"
+								name: "buttonUrl"
+								"text": "豌豆官网"
 							} )
 						} )
 						add( new FormComponent( "javax.swing.JLabel" ) {
@@ -58,7 +84,7 @@ new FormModel {
 					"border": new javax.swing.border.EmptyBorder( 12, 0, 0, 0 )
 					add( new FormComponent( "javax.swing.JButton" ) {
 						name: "okButton"
-						"text": "完成"
+						"text": "保存"
 						addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "okButtonActionPerformed", true ) )
 					}, new FormLayoutConstraints( class com.jformdesigner.runtime.GridBagConstraintsEx ) {
 						"gridx": 1

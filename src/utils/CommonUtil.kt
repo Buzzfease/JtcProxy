@@ -3,11 +3,9 @@ package utils
 import org.apache.poi.hssf.usermodel.HSSFWorkbook
 import org.apache.poi.openxml4j.opc.OPCPackage
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
-import java.io.FileInputStream
+import java.io.*
 import java.text.ParseException
 import java.text.SimpleDateFormat
-
-
 
 
 object CommonUtil {
@@ -76,5 +74,40 @@ object CommonUtil {
         }
         return time
     }
+
+    //读取json文件
+    fun readJsonFile(fileName: String): String? {
+        var jsonStr = ""
+        return try {
+            val jsonFile = File(fileName)
+            val fileReader = FileReader(jsonFile)
+            val reader: Reader = InputStreamReader(FileInputStream(jsonFile), "utf-8")
+            var ch = 0
+            val sb = StringBuffer()
+            while (reader.read().also { ch = it } != -1) {
+                sb.append(ch.toChar())
+            }
+            fileReader.close()
+            reader.close()
+            jsonStr = sb.toString()
+            jsonStr
+        } catch (e: IOException) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+    //写入json文件
+    fun saveDataToFile(data: String?, fileName: String) {
+        try {
+            val jsonFile = File(fileName)
+            val writer = FileWriter(jsonFile, false)
+            writer.append(data)
+            writer.flush()
+        } catch (e: IOException) {
+            e.printStackTrace()
+        }
+    }
+
 
 }

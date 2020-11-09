@@ -1,10 +1,7 @@
 package network
 
 import config.Config
-import entity.CarResult
-import entity.InfoParam
-import entity.InfoResult
-import entity.QureyParam
+import entity.*
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import retrofit2.Call
@@ -12,8 +9,7 @@ import retrofit2.Callback
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
-import retrofit2.http.Body
-import retrofit2.http.POST
+import retrofit2.http.*
 import java.net.InetSocketAddress
 import java.net.Proxy
 import java.security.SecureRandom
@@ -28,27 +24,49 @@ import javax.net.ssl.X509TrustManager
 object Network {
 
     private const val DEFAULT_TIMEOUT = 10
-    var isLoopQuerying = false
-
 
     private fun provideMainRetrofit():Retrofit{
-        return Retrofit.Builder()
-                .addConverterFactory(GsonConverterFactory.create())
-                .baseUrl("https://sytgate.jslife.com.cn/core-gateway/")
-                .client(provideTrustAllClient())
-                .build()
+        return if (Config.proxyOpen){
+            Retrofit.Builder()
+                    .addConverterFactory(GsonConverterFactory.create())
+                    .baseUrl("https://sytgate.jslife.com.cn/core-gateway/")
+                    .client(provideProxyClient())
+                    .build()
+        }else{
+            Retrofit.Builder()
+                    .addConverterFactory(GsonConverterFactory.create())
+                    .baseUrl("https://sytgate.jslife.com.cn/core-gateway/")
+                    .client(provideNormalClient())
+                    .build()
+        }
     }
 
     private fun provideInfoRetrofit():Retrofit{
+        return if (Config.proxyOpen){
+            Retrofit.Builder()
+                    .addConverterFactory(GsonConverterFactory.create())
+                    .baseUrl("http://jparking.jslife.com.cn/jparking-service/")
+                    .client(provideProxyClient())
+                    .build()
+        }else{
+            Retrofit.Builder()
+                    .addConverterFactory(GsonConverterFactory.create())
+                    .baseUrl("http://jparking.jslife.com.cn/jparking-service/")
+                    .client(provideNormalClient())
+                    .build()
+        }
+
+    }
+
+    private fun provideSettingRetrofit():Retrofit{
         return Retrofit.Builder()
                 .addConverterFactory(GsonConverterFactory.create())
-                .baseUrl("http://jparking.jslife.com.cn/jparking-service/")
-                .client(provideTrustAllClient())
+                .baseUrl("http://api.wandoudl.com/")
+                .client(provideNormalClient())
                 .build()
     }
 
-
-    private fun provideTrustAllClient(): OkHttpClient {
+    private fun provideNormalClient(): OkHttpClient{
         val trustAllCerts = buildTrustManagers()
         val sslContext: SSLContext = SSLContext.getInstance("SSL")
         sslContext.init(null, trustAllCerts, SecureRandom())
@@ -56,25 +74,31 @@ object Network {
         val sslSocketFactory: SSLSocketFactory = sslContext.socketFactory
         val builder:OkHttpClient.Builder = OkHttpClient.Builder()
 
-        if (Config.proxyOpen){
-            return builder.readTimeout(DEFAULT_TIMEOUT.toLong(), TimeUnit.SECONDS)
-                    .sslSocketFactory(sslSocketFactory, trustAllCerts!![0] as X509TrustManager)
-                    .hostnameVerifier { _, _ -> true  }
-                    .connectTimeout(DEFAULT_TIMEOUT.toLong(), TimeUnit.SECONDS)
-                    .addInterceptor(jsonHeaderInterceptor())
-                    .addInterceptor(LogInterceptor())
-                    .proxy(Proxy(Proxy.Type.HTTP, InetSocketAddress("proxy.wandouip.com", 8090)))
-                    .retryOnConnectionFailure(true).build()
+        return builder.readTimeout(DEFAULT_TIMEOUT.toLong(), TimeUnit.SECONDS)
+                .sslSocketFactory(sslSocketFactory, trustAllCerts!![0] as X509TrustManager)
+                .hostnameVerifier { _, _ -> true  }
+                .connectTimeout(DEFAULT_TIMEOUT.toLong(), TimeUnit.SECONDS)
+                .addInterceptor(jsonHeaderInterceptor())
+                .addInterceptor(LogInterceptor())
+                .retryOnConnectionFailure(true).build()
+    }
 
-        }else{
-            return builder.readTimeout(DEFAULT_TIMEOUT.toLong(), TimeUnit.SECONDS)
-                    .sslSocketFactory(sslSocketFactory, trustAllCerts!![0] as X509TrustManager)
-                    .hostnameVerifier { _, _ -> true  }
-                    .connectTimeout(DEFAULT_TIMEOUT.toLong(), TimeUnit.SECONDS)
-                    .addInterceptor(jsonHeaderInterceptor())
-                    .addInterceptor(LogInterceptor())
-                    .retryOnConnectionFailure(true).build()
-        }
+    private fun provideProxyClient(): OkHttpClient{
+        val trustAllCerts = buildTrustManagers()
+        val sslContext: SSLContext = SSLContext.getInstance("SSL")
+        sslContext.init(null, trustAllCerts, SecureRandom())
+
+        val sslSocketFactory: SSLSocketFactory = sslContext.socketFactory
+        val builder:OkHttpClient.Builder = OkHttpClient.Builder()
+
+        return builder.readTimeout(DEFAULT_TIMEOUT.toLong(), TimeUnit.SECONDS)
+                .sslSocketFactory(sslSocketFactory, trustAllCerts!![0] as X509TrustManager)
+                .hostnameVerifier { _, _ -> true  }
+                .connectTimeout(DEFAULT_TIMEOUT.toLong(), TimeUnit.SECONDS)
+                .addInterceptor(jsonHeaderInterceptor())
+                .addInterceptor(LogInterceptor())
+                .proxy(Proxy(Proxy.Type.HTTP, InetSocketAddress("proxy.wandouip.com", 8090)))
+                .retryOnConnectionFailure(true).build()
     }
 
 
@@ -174,6 +198,7 @@ object Network {
         var current = 0
         var successCount = 0
         var failedCount = 0
+        var qms = Config.getAppConfig().queryTime
 
         run loop@{
             carNoList.forEach {
@@ -257,9 +282,51 @@ object Network {
                         }
                     }
                 })
-                Thread.sleep(Config.queryTime)
+                Thread.sleep(qms)
             }
         }
+    }
+
+    fun getWhiteList(callBack: BaseCallBack<WhiteListResult>){
+        val api: RespApi = provideSettingRetrofit().create(RespApi::class.java)
+        val call: Call<WhiteListResult> = api.getWhiteList(Config.getAppConfig().appKey)
+        call.enqueue(object : Callback<WhiteListResult>{
+            override fun onResponse(call: Call<WhiteListResult>, response: Response<WhiteListResult>) {
+                if (response.body()!!.code == 200){
+                    callBack.requestSuccess(response.body()!!,0,0)
+                }else{
+                    callBack.requestFail(response.body()!!.msg)
+                }
+
+            }
+            override fun onFailure(call: Call<WhiteListResult>, t: Throwable) {
+                callBack.requestFail(t.message)
+            }
+        })
+    }
+
+    fun addWhiteList(id:String?, callBack: BaseCallBack<WhiteListResult>){
+        val api: RespApi = provideSettingRetrofit().create(RespApi::class.java)
+        val paramMap = HashMap<String?,String?>()
+        if (id != null){
+            paramMap["id"] = id
+        }
+        paramMap["app_key"] = Config.getAppConfig().appKey
+        paramMap["ip"] = Config.getAppConfig().ip
+
+        val call: Call<WhiteListResult> = api.updateWhiteList(paramMap)
+        call.enqueue(object : Callback<WhiteListResult>{
+            override fun onResponse(call: Call<WhiteListResult>, response: Response<WhiteListResult>) {
+                if (response.body()!!.code == 200){
+                    callBack.requestSuccess(response.body()!!,0,0)
+                }else{
+                    callBack.requestFail(response.body()!!.msg)
+                }
+            }
+            override fun onFailure(call: Call<WhiteListResult>, t: Throwable) {
+                callBack.requestFail(t.message)
+            }
+        })
     }
 
     interface RespApi {
@@ -268,5 +335,12 @@ object Network {
 
         @POST("order/carno/pay")
         fun getCarRealInfo(@Body param: InfoParam): Call<InfoResult>
+
+        @GET("api/whitelist/list")
+        fun getWhiteList(@Query("app_key") key:String?):Call<WhiteListResult>
+
+        //修改/更新ip白名单，如果只传ip且ip未达到总使用量则会新增，否则请指定id值，更新对应id的白名单ip
+        @GET("api/whitelist/update")
+        fun updateWhiteList(@QueryMap param:HashMap<String?, String?>):Call<WhiteListResult>
     }
 }

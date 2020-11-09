@@ -71,30 +71,39 @@ public class RequestFrame extends JFrame {
 
                 if (infoResult.getResultCode() == -1){
                     v.add(infoResult.getConstCarNo());
-                    v.add("未入场");
                     v.add("未停车");
-                    v.add("null");
+                    v.add("未入场");
+                    v.add("操作");
                     model.addRow(v);
                 }else{
                     if (isLimit){
-                        long parseTime = CommonUtil.INSTANCE.parseTime(infoResult.getDataItems().get(0).getAttributes().getStartTime());
+                        long parseTime;
+                        if (infoResult.getDataItems().get(0).getAttributes().getStartTime() == null
+                                || infoResult.getDataItems().get(0).getAttributes().getStartTime().isEmpty()){
+                            parseTime = -1;
+                        }else{
+                            parseTime = CommonUtil.INSTANCE.parseTime(infoResult.getDataItems().get(0).getAttributes().getStartTime());
+                        }
                         if (parseTime != -1 && System.currentTimeMillis() - parseTime <= 60*60*24*1000){
                             v.add(infoResult.getDataItems().get(0).getAttributes().getCarNo());
                             v.add(infoResult.getDataItems().get(0).getAttributes().getParkName());
                             v.add(infoResult.getDataItems().get(0).getAttributes().getStartTime());
-                            v.add("null");
+                            v.add("操作");
                             model.addRow(v);
                         }
                     }else{
                         v.add(infoResult.getDataItems().get(0).getAttributes().getCarNo());
                         v.add(infoResult.getDataItems().get(0).getAttributes().getParkName());
-                        v.add(infoResult.getDataItems().get(0).getAttributes().getStartTime());
-                        v.add("null");
+                        if (infoResult.getDataItems().get(0).getAttributes().getStartTime() == null
+                                || infoResult.getDataItems().get(0).getAttributes().getStartTime().isEmpty()){
+                            v.add("未入场");
+                        }else {
+                            v.add(infoResult.getDataItems().get(0).getAttributes().getStartTime());
+                        }
+                        v.add("操作");
                         model.addRow(v);
                     }
-
                 }
-
                 table1.getColumnModel().getColumn(3).setCellRenderer(new MyButtonRender());
                 table1.getColumnModel().getColumn(3).setCellEditor(new MyButtonEditor(table1));
             }
@@ -141,25 +150,36 @@ public class RequestFrame extends JFrame {
                             Vector<String> v = new Vector<>();
                             if (bean.getResultCode() == -1){
                                 v.add(bean.getConstCarNo());
-                                v.add("未入场");
                                 v.add("未停车");
-                                v.add("null");
+                                v.add("未入场");
+                                v.add("操作");
                                 model.addRow(v);
                             }else{
                                 if (isLimit){
-                                    long parseTime = CommonUtil.INSTANCE.parseTime(bean.getDataItems().get(0).getAttributes().getStartTime());
+                                    long parseTime;
+                                    if (bean.getDataItems().get(0).getAttributes().getStartTime() == null
+                                            || bean.getDataItems().get(0).getAttributes().getStartTime().isEmpty()){
+                                        parseTime = -1;
+                                    }else{
+                                        parseTime = CommonUtil.INSTANCE.parseTime(bean.getDataItems().get(0).getAttributes().getStartTime());
+                                    }
                                     if (parseTime != -1 && System.currentTimeMillis() - parseTime <= 60*60*24*1000){
                                         v.add(bean.getDataItems().get(0).getAttributes().getCarNo());
                                         v.add(bean.getDataItems().get(0).getAttributes().getParkName());
                                         v.add(bean.getDataItems().get(0).getAttributes().getStartTime());
-                                        v.add("null");
+                                        v.add("操作");
                                         model.addRow(v);
                                     }
                                 }else{
                                     v.add(bean.getDataItems().get(0).getAttributes().getCarNo());
                                     v.add(bean.getDataItems().get(0).getAttributes().getParkName());
-                                    v.add(bean.getDataItems().get(0).getAttributes().getStartTime());
-                                    v.add("null");
+                                    if (bean.getDataItems().get(0).getAttributes().getStartTime() == null
+                                            || bean.getDataItems().get(0).getAttributes().getStartTime().isEmpty()){
+                                        v.add("未入场");
+                                    }else {
+                                        v.add(bean.getDataItems().get(0).getAttributes().getStartTime());
+                                    }
+                                    v.add("操作");
                                     model.addRow(v);
                                 }
                             }

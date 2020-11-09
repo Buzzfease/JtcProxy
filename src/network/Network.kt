@@ -235,7 +235,11 @@ object Network {
             override fun onResponse(call: Call<CarResult>, response: Response<CarResult>) {
                 when(response.body()!!.resultCode){
                     0 ->{
-                        if (response.body()!!.obj.retcode == 0){
+                        if (response.body()!!.message == "无法找到场内车"){
+                            val constResult = InfoResult()
+                            constResult.constCarNo = testParam.carNo
+                            callBack.requestSuccess(constResult,0,0)
+                        }else{
                             //真实存在
                             val infoParam = InfoParam()
                             infoParam.carNo = response.body()!!.obj.carNo
@@ -255,11 +259,32 @@ object Network {
                                     callBack.requestSuccess(constResult,0,0)
                                 }
                             })
-                        }else{
-                            val constResult = InfoResult()
-                            constResult.constCarNo = testParam.carNo
-                            callBack.requestSuccess(constResult,0,0)
                         }
+//                        if (response.body()!!.obj.retcode == 0){
+//                            //真实存在
+//                            val infoParam = InfoParam()
+//                            infoParam.carNo = response.body()!!.obj.carNo
+//                            infoParam.orderType = response.body()!!.obj.orderType
+//                            infoParam.parkCode = response.body()!!.obj.parkCode
+//                            infoParam.userId = testParam.userId
+//
+//                            val api2: RespApi = provideInfoRetrofit().create(RespApi::class.java)
+//                            val mCall2: Call<InfoResult> = api2.getCarRealInfo(infoParam)
+//                            mCall2.enqueue(object : Callback<InfoResult>{
+//                                override fun onResponse(call: Call<InfoResult>, response: Response<InfoResult>) {
+//                                    callBack.requestSuccess(response.body()!!,0,0)
+//                                }
+//                                override fun onFailure(call: Call<InfoResult>, t: Throwable) {
+//                                    val constResult = InfoResult()
+//                                    constResult.constCarNo = infoParam.carNo
+//                                    callBack.requestSuccess(constResult,0,0)
+//                                }
+//                            })
+//                        }else{
+//                            val constResult = InfoResult()
+//                            constResult.constCarNo = testParam.carNo
+//                            callBack.requestSuccess(constResult,0,0)
+//                        }
                     }
                     else ->{
                         callBack.requestFail("Ip被封禁")
@@ -295,7 +320,17 @@ object Network {
                     override fun onResponse(call: Call<CarResult>, response: Response<CarResult>) {
                         when(response.body()!!.resultCode){
                             0 ->{
-                                if (response.body()!!.obj.retcode == 0){
+                                if (response.body()!!.message == "无法找到场内车"){
+                                    current++
+                                    successCount++
+                                    callBack.requestOnGoing(current)
+                                    val constResult = InfoResult()
+                                    constResult.constCarNo = it
+                                    resultList.add(constResult)
+                                    if (current == total){
+                                        callBack.requestSuccess(resultList, successCount, failedCount)
+                                    }
+                                }else{
                                     //真实存在
                                     val infoParam = InfoParam()
                                     infoParam.carNo = response.body()!!.obj.carNo
@@ -333,17 +368,56 @@ object Network {
                                             }
                                         }
                                     })
-                                }else{
-                                    current++
-                                    successCount++
-                                    callBack.requestOnGoing(current)
-                                    val constResult = InfoResult()
-                                    constResult.constCarNo = it
-                                    resultList.add(constResult)
-                                    if (current == total){
-                                        callBack.requestSuccess(resultList, successCount, failedCount)
-                                    }
                                 }
+//                                if (response.body()!!.obj.retcode == 0){
+//                                    //真实存在
+//                                    val infoParam = InfoParam()
+//                                    infoParam.carNo = response.body()!!.obj.carNo
+//                                    infoParam.orderType = response.body()!!.obj.orderType
+//                                    infoParam.parkCode = response.body()!!.obj.parkCode
+//                                    infoParam.userId = testParam.userId
+//
+//                                    val api2: RespApi = provideInfoRetrofit().create(RespApi::class.java)
+//                                    val mCall2: Call<InfoResult> = api2.getCarRealInfo(infoParam)
+//                                    mCall2.enqueue(object : Callback<InfoResult>{
+//                                        override fun onResponse(call: Call<InfoResult>, response: Response<InfoResult>) {
+//                                            current++
+//                                            successCount++
+//                                            callBack.requestOnGoing(current)
+//                                            when(response.body()!!.resultCode){
+//                                                0 ->{
+//                                                    resultList.add(response.body()!!)
+//                                                }
+//                                                else ->{
+//                                                    val constResult = InfoResult()
+//                                                    constResult.constCarNo = infoParam.carNo
+//                                                    resultList.add(constResult)
+//                                                }
+//                                            }
+//                                            if (current == total){
+//                                                callBack.requestSuccess(resultList, successCount, failedCount)
+//                                            }
+//                                        }
+//                                        override fun onFailure(call: Call<InfoResult>, t: Throwable) {
+//                                            current++
+//                                            failedCount++
+//                                            callBack.requestOnGoing(current)
+//                                            if (current == total){
+//                                                callBack.requestSuccess(resultList, successCount, failedCount)
+//                                            }
+//                                        }
+//                                    })
+//                                }else{
+//                                    current++
+//                                    successCount++
+//                                    callBack.requestOnGoing(current)
+//                                    val constResult = InfoResult()
+//                                    constResult.constCarNo = it
+//                                    resultList.add(constResult)
+//                                    if (current == total){
+//                                        callBack.requestSuccess(resultList, successCount, failedCount)
+//                                    }
+//                                }
                             }
                             else ->{
                                 //ip被封禁

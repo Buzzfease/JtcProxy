@@ -5,15 +5,29 @@ new FormModel {
 	root: new FormRoot {
 		add( new FormWindow( "javax.swing.JFrame", new FormLayoutManager( class java.awt.BorderLayout ) ) {
 			name: "this"
+			add( new FormComponent( "javax.swing.JLabel" ) {
+				name: "label1"
+				"text": " "
+			}, new FormLayoutConstraints( class java.lang.String ) {
+				"value": "North"
+			} )
+			add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class java.awt.GridLayout ) ) {
+				name: "westPanel"
+				"minimumSize": new java.awt.Dimension( 100, 200 )
+				"preferredSize": new java.awt.Dimension( 100, 200 )
+				add( new FormContainer( "javax.swing.JScrollPane", new FormLayoutManager( class javax.swing.JScrollPane ) ) {
+					name: "scrollPane1"
+					add( new FormComponent( "javax.swing.JTextArea" ) {
+						name: "textAreaImport"
+					} )
+				} )
+			}, new FormLayoutConstraints( class java.lang.String ) {
+				"value": "West"
+			} )
 			add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class org.jdesktop.swingx.VerticalLayout ) {
 				"gap": 5
 			} ) {
 				name: "mainPanel"
-				add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class java.awt.GridLayout ) {
-					"columns": 1
-				} ) {
-					name: "panel3"
-				} )
 				add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class java.awt.GridLayout ) {
 					"columns": 2
 					"hgap": 10
@@ -88,6 +102,8 @@ new FormModel {
 				} )
 				add( new FormContainer( "javax.swing.JScrollPane", new FormLayoutManager( class javax.swing.JScrollPane ) ) {
 					name: "dataPanel"
+					"minimumSize": new java.awt.Dimension( 16, 0 )
+					"preferredSize": new java.awt.Dimension( 452, 300 )
 					add( new FormComponent( "javax.swing.JTable" ) {
 						name: "table1"
 						"model": new com.jformdesigner.model.SwingTableModel( new java.util.Vector, new java.util.Vector {
@@ -118,8 +134,8 @@ new FormModel {
 				"value": "Center"
 			} )
 		}, new FormLayoutConstraints( null ) {
-			"location": new java.awt.Point( 0, 0 )
-			"size": new java.awt.Dimension( 580, 420 )
+			"location": new java.awt.Point( 70, 0 )
+			"size": new java.awt.Dimension( 455, 480 )
 		} )
 	}
 }

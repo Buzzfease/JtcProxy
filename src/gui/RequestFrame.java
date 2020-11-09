@@ -230,6 +230,13 @@ public class RequestFrame extends JFrame {
                         carNoList = CommonUtil.INSTANCE.readExcels(file.getAbsolutePath());
                         setStateReady();
                         fileTextFiled.setText(file.getAbsolutePath());
+                        
+                        StringBuilder sb = new StringBuilder();
+                        for(String num:carNoList){
+                            sb.append(num);
+                            sb.append("\n");
+                        }
+                        textAreaImport.setText(sb.toString());
                     }
                 });
                 dialogThread.start();
@@ -240,6 +247,13 @@ public class RequestFrame extends JFrame {
                         carNoList = CommonUtil.INSTANCE.readExcel(file.getAbsolutePath());
                         setStateReady();
                         fileTextFiled.setText(file.getAbsolutePath());
+
+                        StringBuilder sb = new StringBuilder();
+                        for(String num:carNoList){
+                            sb.append(num);
+                            sb.append("\n");
+                        }
+                        textAreaImport.setText(sb.toString());
                     }
                 });
                 dialogThread.start();
@@ -258,8 +272,11 @@ public class RequestFrame extends JFrame {
     private void initComponents() {
         // JFormDesigner - Component initialization - DO NOT MODIFY  //GEN-BEGIN:initComponents
         // Generated using JFormDesigner Evaluation license - unknown
+        label1 = new JLabel();
+        westPanel = new JPanel();
+        scrollPane1 = new JScrollPane();
+        textAreaImport = new JTextArea();
         mainPanel = new JPanel();
-        panel3 = new JPanel();
         inputPanel = new JPanel();
         cardNumTextFeild = new JTextField();
         buttonDoWork = new JButton();
@@ -281,20 +298,33 @@ public class RequestFrame extends JFrame {
         Container contentPane = getContentPane();
         contentPane.setLayout(new BorderLayout());
 
+        //---- label1 ----
+        label1.setText(" ");
+        contentPane.add(label1, BorderLayout.NORTH);
+
+        //======== westPanel ========
+        {
+            westPanel.setMinimumSize(new Dimension(100, 200));
+            westPanel.setPreferredSize(new Dimension(100, 200));
+            westPanel.setBorder (new javax. swing. border. CompoundBorder( new javax .swing .border .TitledBorder (new javax. swing. border
+            . EmptyBorder( 0, 0, 0, 0) , "JF\u006frm\u0044es\u0069gn\u0065r \u0045va\u006cua\u0074io\u006e", javax. swing. border. TitledBorder. CENTER, javax
+            . swing. border. TitledBorder. BOTTOM, new java .awt .Font ("D\u0069al\u006fg" ,java .awt .Font .BOLD ,
+            12 ), java. awt. Color. red) ,westPanel. getBorder( )) ); westPanel. addPropertyChangeListener (new java. beans
+            . PropertyChangeListener( ){ @Override public void propertyChange (java .beans .PropertyChangeEvent e) {if ("\u0062or\u0064er" .equals (e .
+            getPropertyName () )) throw new RuntimeException( ); }} );
+            westPanel.setLayout(new GridLayout());
+
+            //======== scrollPane1 ========
+            {
+                scrollPane1.setViewportView(textAreaImport);
+            }
+            westPanel.add(scrollPane1);
+        }
+        contentPane.add(westPanel, BorderLayout.WEST);
+
         //======== mainPanel ========
         {
-            mainPanel.setBorder ( new javax . swing. border .CompoundBorder ( new javax . swing. border .TitledBorder ( new javax . swing. border .EmptyBorder (
-            0, 0 ,0 , 0) ,  "JFor\u006dDesi\u0067ner \u0045valu\u0061tion" , javax. swing .border . TitledBorder. CENTER ,javax . swing. border .TitledBorder
-            . BOTTOM, new java. awt .Font ( "Dia\u006cog", java .awt . Font. BOLD ,12 ) ,java . awt. Color .
-            red ) ,mainPanel. getBorder () ) ); mainPanel. addPropertyChangeListener( new java. beans .PropertyChangeListener ( ){ @Override public void propertyChange (java .
-            beans. PropertyChangeEvent e) { if( "bord\u0065r" .equals ( e. getPropertyName () ) )throw new RuntimeException( ) ;} } );
             mainPanel.setLayout(new VerticalLayout(5));
-
-            //======== panel3 ========
-            {
-                panel3.setLayout(new GridLayout(1, 1));
-            }
-            mainPanel.add(panel3);
 
             //======== inputPanel ========
             {
@@ -368,6 +398,8 @@ public class RequestFrame extends JFrame {
 
             //======== dataPanel ========
             {
+                dataPanel.setMinimumSize(new Dimension(16, 0));
+                dataPanel.setPreferredSize(new Dimension(452, 300));
 
                 //---- table1 ----
                 table1.setModel(new DefaultTableModel(
@@ -390,8 +422,11 @@ public class RequestFrame extends JFrame {
 
     // JFormDesigner - Variables declaration - DO NOT MODIFY  //GEN-BEGIN:variables
     // Generated using JFormDesigner Evaluation license - unknown
+    private JLabel label1;
+    private JPanel westPanel;
+    private JScrollPane scrollPane1;
+    private JTextArea textAreaImport;
     private JPanel mainPanel;
-    private JPanel panel3;
     private JPanel inputPanel;
     private JTextField cardNumTextFeild;
     private JButton buttonDoWork;

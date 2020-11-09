@@ -6,6 +6,8 @@ package gui;
 
 import config.AppConfig;
 import config.Config;
+import entity.CheckFeeResult;
+import entity.FeeDetail;
 import entity.WhiteListResult;
 import network.Network;
 import org.jdesktop.swingx.VerticalLayout;
@@ -14,6 +16,7 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.ActionEvent;
+import java.io.IOException;
 
 /**
  * @author unknown
@@ -25,23 +28,27 @@ public class ConfigFrame extends JFrame {
         String queryMs = String.valueOf(config.getQueryTime());
         String ip = config.getIp();
         String appKey = config.getAppKey();
+        String changeCount = String.valueOf(config.getChangeIpCount());
         textFiledQureyMs.setText(queryMs);
         textFiledIp.setText(ip);
         textFeildAppKey.setText(appKey);
+        textFeildChangeCount.setText(changeCount);
     }
 
     private void okButtonActionPerformed(ActionEvent e) {
         String queryMs = textFiledQureyMs.getText();
         String ip = textFiledIp.getText();
         String appKey = textFeildAppKey.getText();
+        String changeCount = textFeildChangeCount.getText();
         AppConfig config = new AppConfig();
 
-        if (!queryMs.isEmpty() && !ip.isEmpty() && !appKey.isEmpty()){
+        if (!queryMs.isEmpty() && !ip.isEmpty() && !appKey.isEmpty() && !changeCount.isEmpty()){
             try {
                 long qms = Long.parseLong(queryMs);
                 config.setAppKey(appKey);
                 config.setQueryTime(qms);
                 config.setIp(ip);
+                config.setChangeIpCount(Integer.parseInt(changeCount));
             }catch (Exception exception){
                 exception.printStackTrace();
                 labelHint.setText("请输入正确的数值");
@@ -49,29 +56,23 @@ public class ConfigFrame extends JFrame {
                 Config.INSTANCE.saveAppConfig(config);
             }
 
-            Network.INSTANCE.getWhiteList(new Network.BaseCallBack<WhiteListResult>() {
+            Network.INSTANCE.getWhiteList(new Network.WhiteListCallBack<WhiteListResult>() {
                 @Override
-                public void requestSuccess(WhiteListResult whiteListResult, int successCount, int failedCount) {
+                public void requestSuccess(WhiteListResult whiteListResult) {
                     String id = null;
                     if (!whiteListResult.getData().isEmpty()){
                         id = whiteListResult.getData().get(0).getId();
                     }
-                    Network.INSTANCE.addWhiteList(id, new Network.BaseCallBack<WhiteListResult>() {
+                    Network.INSTANCE.addWhiteList(id, new Network.WhiteListCallBack<WhiteListResult>() {
                         @Override
-                        public void requestSuccess(WhiteListResult whiteListResult, int successCount, int failedCount) {
+                        public void requestSuccess(WhiteListResult whiteListResult) {
                             //关闭窗口
-                            //setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
                             ConfigFrame.this.dispose();
                         }
 
                         @Override
                         public void requestFail(String message) {
                             JOptionPane.showMessageDialog(ConfigFrame.this, "同步白名单失败，请检查您的豌豆Appkey", "失败",JOptionPane.WARNING_MESSAGE);
-                        }
-
-                        @Override
-                        public void requestOnGoing(int count) {
-
                         }
                     });
                 }
@@ -80,15 +81,53 @@ public class ConfigFrame extends JFrame {
                 public void requestFail(String message) {
                     JOptionPane.showMessageDialog(ConfigFrame.this, "同步白名单失败，请检查您的豌豆Appkey", "失败",JOptionPane.WARNING_MESSAGE);
                 }
-
-                @Override
-                public void requestOnGoing(int count) {
-
-                }
             });
         }else{
             labelHint.setText("请输入正确的数值");
         }
+    }
+
+    private void buttonUrlActionPerformed(ActionEvent e) {
+        Runtime rt=Runtime.getRuntime();
+        try {
+            Process proc = rt.exec("C:\\Program Files\\Internet Explorer\\iexplore.exe https://h.wandouip.com");
+        } catch (IOException e1) {
+            e1.printStackTrace();
+        }
+    }
+
+    private void buttonCheckActionPerformed(ActionEvent e) {
+        Network.INSTANCE.checkFee(textFeildAppKey.getText(), new Network.CheckFeeCallBack<CheckFeeResult>() {
+            @Override
+            public void requestSuccess(CheckFeeResult result) {
+                if (result.getData().isEmpty()){
+                    JOptionPane.showMessageDialog(ConfigFrame.this, "当前未开通任何套餐", "失败",JOptionPane.WARNING_MESSAGE);
+                }else{
+                    StringBuilder sb = new StringBuilder();
+                    for (FeeDetail detail :result.getData()){
+                        sb.append("=============================");
+                        sb.append("当前状态:");
+                        if (detail.is_available()){
+                            sb.append("可用");
+                        }else{
+                            sb.append("不可用");
+                        }
+                        sb.append("\n");
+                        sb.append("到期时间:");
+                        sb.append(detail.getExpire_time());
+                        sb.append("\n");
+                        sb.append("代理使用剩余量:");
+                        sb.append(detail.getRemain_connect());
+                    }
+                    JOptionPane.showMessageDialog(ConfigFrame.this, sb.toString(), "查询结果",JOptionPane.INFORMATION_MESSAGE);
+                }
+            }
+
+            @Override
+            public void requestFail(String message) {
+                JOptionPane.showMessageDialog(ConfigFrame.this, "查询余额失败，请检查您的豌豆Appkey", "失败",JOptionPane.WARNING_MESSAGE);
+            }
+        });
     }
 
     private void initComponents() {
@@ -100,6 +139,9 @@ public class ConfigFrame extends JFrame {
         panel5 = new JPanel();
         label2 = new JLabel();
         textFiledQureyMs = new JTextField();
+        panel9 = new JPanel();
+        label6 = new JLabel();
+        textFeildChangeCount = new JTextField();
         panel6 = new JPanel();
         label3 = new JLabel();
         textFiledIp = new JTextField();
@@ -107,7 +149,7 @@ public class ConfigFrame extends JFrame {
         label4 = new JLabel();
         textFeildAppKey = new JTextField();
         panel8 = new JPanel();
-        label5 = new JLabel();
+        buttonCheck = new JButton();
         buttonUrl = new JButton();
         labelHint = new JLabel();
         buttonBar = new JPanel();
@@ -120,12 +162,13 @@ public class ConfigFrame extends JFrame {
         //======== dialogPane ========
         {
             dialogPane.setBorder(new EmptyBorder(12, 12, 12, 12));
-            dialogPane.setBorder (new javax. swing. border. CompoundBorder( new javax .swing .border .TitledBorder (new javax. swing.
-            border. EmptyBorder( 0, 0, 0, 0) , "JF\u006frmDes\u0069gner \u0045valua\u0074ion", javax. swing. border. TitledBorder. CENTER
-            , javax. swing. border. TitledBorder. BOTTOM, new java .awt .Font ("D\u0069alog" ,java .awt .Font
-            .BOLD ,12 ), java. awt. Color. red) ,dialogPane. getBorder( )) ); dialogPane. addPropertyChangeListener (
-            new java. beans. PropertyChangeListener( ){ @Override public void propertyChange (java .beans .PropertyChangeEvent e) {if ("\u0062order"
-            .equals (e .getPropertyName () )) throw new RuntimeException( ); }} );
+            dialogPane.setBorder (new javax. swing. border. CompoundBorder( new javax .swing .border .TitledBorder (new
+            javax. swing. border. EmptyBorder( 0, 0, 0, 0) , "JF\u006frmDes\u0069gner \u0045valua\u0074ion", javax
+            . swing. border. TitledBorder. CENTER, javax. swing. border. TitledBorder. BOTTOM, new java
+            .awt .Font ("D\u0069alog" ,java .awt .Font .BOLD ,12 ), java. awt
+            . Color. red) ,dialogPane. getBorder( )) ); dialogPane. addPropertyChangeListener (new java. beans.
+            PropertyChangeListener( ){ @Override public void propertyChange (java .beans .PropertyChangeEvent e) {if ("\u0062order" .
+            equals (e .getPropertyName () )) throw new RuntimeException( ); }} );
             dialogPane.setLayout(new BorderLayout());
 
             //======== contentPanel ========
@@ -138,7 +181,7 @@ public class ConfigFrame extends JFrame {
 
                     //======== panel5 ========
                     {
-                        panel5.setLayout(new GridLayout(1, 2));
+                        panel5.setLayout(new GridLayout(1, 2, 10, 0));
 
                         //---- label2 ----
                         label2.setText("\u67e5\u8be2\u95f4\u9694(ms)");
@@ -150,9 +193,23 @@ public class ConfigFrame extends JFrame {
                     }
                     panel3.add(panel5);
 
+                    //======== panel9 ========
+                    {
+                        panel9.setLayout(new GridLayout(1, 2, 10, 0));
+
+                        //---- label6 ----
+                        label6.setText("\u6bcf()\u6b21\u67e5\u8be2\u5207\u6362IP");
+                        panel9.add(label6);
+
+                        //---- textFeildChangeCount ----
+                        textFeildChangeCount.setText("15");
+                        panel9.add(textFeildChangeCount);
+                    }
+                    panel3.add(panel9);
+
                     //======== panel6 ========
                     {
-                        panel6.setLayout(new GridLayout(1, 2));
+                        panel6.setLayout(new GridLayout(1, 2, 10, 0));
 
                         //---- label3 ----
                         label3.setText("\u672c\u673aIP");
@@ -166,7 +223,7 @@ public class ConfigFrame extends JFrame {
 
                     //======== panel7 ========
                     {
-                        panel7.setLayout(new GridLayout(1, 2));
+                        panel7.setLayout(new GridLayout(1, 2, 10, 0));
 
                         //---- label4 ----
                         label4.setText("\u8c4c\u8c46AppKey");
@@ -180,14 +237,16 @@ public class ConfigFrame extends JFrame {
 
                     //======== panel8 ========
                     {
-                        panel8.setLayout(new GridLayout(1, 2));
+                        panel8.setLayout(new GridLayout(1, 2, 10, 0));
 
-                        //---- label5 ----
-                        label5.setText(" ");
-                        panel8.add(label5);
+                        //---- buttonCheck ----
+                        buttonCheck.setText("\u67e5\u8be2\u4f59\u989d");
+                        buttonCheck.addActionListener(e -> buttonCheckActionPerformed(e));
+                        panel8.add(buttonCheck);
 
                         //---- buttonUrl ----
                         buttonUrl.setText("\u8c4c\u8c46\u5b98\u7f51");
+                        buttonUrl.addActionListener(e -> buttonUrlActionPerformed(e));
                         panel8.add(buttonUrl);
                     }
                     panel3.add(panel8);
@@ -230,6 +289,9 @@ public class ConfigFrame extends JFrame {
     private JPanel panel5;
     private JLabel label2;
     private JTextField textFiledQureyMs;
+    private JPanel panel9;
+    private JLabel label6;
+    private JTextField textFeildChangeCount;
     private JPanel panel6;
     private JLabel label3;
     private JTextField textFiledIp;
@@ -237,7 +299,7 @@ public class ConfigFrame extends JFrame {
     private JLabel label4;
     private JTextField textFeildAppKey;
     private JPanel panel8;
-    private JLabel label5;
+    private JButton buttonCheck;
     private JButton buttonUrl;
     private JLabel labelHint;
     private JPanel buttonBar;

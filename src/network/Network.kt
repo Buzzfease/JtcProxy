@@ -2,8 +2,7 @@ package network
 
 import config.Config
 import entity.*
-import okhttp3.Interceptor
-import okhttp3.OkHttpClient
+import okhttp3.*
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -23,6 +22,10 @@ import javax.net.ssl.X509TrustManager
 
 object Network {
 
+    private var proxyList = ArrayList<IpItem>()
+    private var requestTimes = 0
+    private var changeIpCount = 15
+    private var isProxyOpen:Boolean = false
     private const val DEFAULT_TIMEOUT = 10
 
     private fun provideMainRetrofit():Retrofit{
@@ -84,6 +87,12 @@ object Network {
     }
 
     private fun provideProxyClient(): OkHttpClient{
+        requestTimes++
+        val index = if (requestTimes / changeIpCount > proxyList.size - 1){
+            proxyList.size -1
+        }else{
+            requestTimes / changeIpCount
+        }
         val trustAllCerts = buildTrustManagers()
         val sslContext: SSLContext = SSLContext.getInstance("SSL")
         sslContext.init(null, trustAllCerts, SecureRandom())
@@ -97,7 +106,10 @@ object Network {
                 .connectTimeout(DEFAULT_TIMEOUT.toLong(), TimeUnit.SECONDS)
                 .addInterceptor(jsonHeaderInterceptor())
                 .addInterceptor(LogInterceptor())
-                .proxy(Proxy(Proxy.Type.HTTP, InetSocketAddress("proxy.wandouip.com", 8090)))
+                .proxy(Proxy(Proxy.Type.HTTP, InetSocketAddress(proxyList[index].ip, proxyList[index].port)))
+                .proxyAuthenticator { route, response ->
+                    return@proxyAuthenticator response.request().newBuilder().build()
+                }
                 .retryOnConnectionFailure(true).build()
     }
 
@@ -133,14 +145,83 @@ object Network {
         fun requestSuccess(t: T, successCount:Int, failedCount:Int)
         fun requestFail(message: String?)
         fun requestOnGoing(count:Int)
+        fun requestProxyError(message: String?)
+    }
+
+    interface ProxyCallBack<T> {
+        fun requestSuccess(t: T)
+        fun requestFail(message: String?)
+    }
+
+    interface WhiteListCallBack<T> {
+        fun requestSuccess(t: T)
+        fun requestFail(message: String?)
+    }
+
+    interface CheckFeeCallBack<T> {
+        fun requestSuccess(t: T)
+        fun requestFail(message: String?)
     }
 
     fun querySingle(carNo:String, callBack: BaseCallBack<InfoResult>){
-        querySingleFormServer(carNo, callBack)
+        isProxyOpen = Config.proxyOpen
+        if (isProxyOpen){
+            requestTimes = 0
+            changeIpCount = Config.getAppConfig().changeIpCount
+            getProxyIp(1, object :ProxyCallBack<ProxyResult>{
+                override fun requestSuccess(t: ProxyResult) {
+                    when(t.code){
+                        200 ->{
+                            proxyList = t.data as ArrayList<IpItem>
+                            querySingleFormServer(carNo, callBack)
+                        }
+                        40000 ->{ callBack.requestProxyError("认证参数错误(系统错误，请联系豌豆客服)")}
+                        40002 ->{ callBack.requestProxyError("ip不在白名单(请打开设置配置)")}
+                        40004 ->{ callBack.requestProxyError("ip认证失败/ip白名单过期(请打开设置配置)")}
+                        40006 ->{ callBack.requestProxyError("认证关联的用户异常/用户不存在(ip白名单错误/认证数据错误)")}
+                        40008 ->{ callBack.requestProxyError("代理节点不存在(代理ip过期导致，请重新查询)")}
+                        40010 ->{ callBack.requestProxyError("套餐已经使用完(打开豌豆代理官网充值套餐即可)")}
+                    }
+                }
+
+                override fun requestFail(message: String?) {
+                    callBack.requestProxyError(message)
+                }
+            })
+        }else{
+            querySingleFormServer(carNo, callBack)
+        }
     }
 
     fun queryMany(carNoList:ArrayList<String>, callBack: BaseCallBack<ArrayList<InfoResult>>){
-        queryLoopFormServer(carNoList, callBack)
+        isProxyOpen = Config.proxyOpen
+        if (isProxyOpen){
+            requestTimes = 0
+            changeIpCount = Config.getAppConfig().changeIpCount
+            val requestProxyNum:Int = (carNoList.size / changeIpCount) + 1
+            getProxyIp(requestProxyNum, object :ProxyCallBack<ProxyResult>{
+                override fun requestSuccess(t: ProxyResult) {
+                    when(t.code){
+                        200 ->{
+                            proxyList = t.data as ArrayList<IpItem>
+                            queryLoopFormServer(carNoList, callBack)
+                        }
+                        40000 ->{ callBack.requestProxyError("认证参数错误(系统错误，请联系豌豆客服)")}
+                        40002 ->{ callBack.requestProxyError("ip不在白名单(请打开设置配置)")}
+                        40004 ->{ callBack.requestProxyError("ip认证失败/ip白名单过期(请打开设置配置)")}
+                        40006 ->{ callBack.requestProxyError("认证关联的用户异常/用户不存在(ip白名单错误/认证数据错误)")}
+                        40008 ->{ callBack.requestProxyError("代理节点不存在(代理ip过期导致，请重新查询)")}
+                        40010 ->{ callBack.requestProxyError("套餐已经使用完(打开豌豆代理官网充值套餐即可)")}
+                    }
+                }
+
+                override fun requestFail(message: String?) {
+                    callBack.requestProxyError(message)
+                }
+            })
+        }else{
+            queryLoopFormServer(carNoList, callBack)
+        }
     }
 
 
@@ -187,7 +268,11 @@ object Network {
             }
 
             override fun onFailure(call: Call<CarResult>, t: Throwable) {
-                callBack.requestFail(t.message)
+                if (isProxyOpen){
+                    callBack.requestProxyError("代理失败，请检查ip白名单和套餐余额")
+                }else{
+                    callBack.requestProxyError(t.message)
+                }
             }
         })
     }
@@ -198,7 +283,7 @@ object Network {
         var current = 0
         var successCount = 0
         var failedCount = 0
-        var qms = Config.getAppConfig().queryTime
+        val qms = Config.getAppConfig().queryTime
 
         run loop@{
             carNoList.forEach {
@@ -278,7 +363,11 @@ object Network {
                         failedCount++
                         callBack.requestOnGoing(current)
                         if (current == total){
-                            callBack.requestSuccess(resultList, successCount, failedCount)
+                            if (isProxyOpen && failedCount == total){
+                                callBack.requestProxyError("代理失败，请检查ip白名单和套餐余额")
+                            }else{
+                                callBack.requestSuccess(resultList, successCount, failedCount)
+                            }
                         }
                     }
                 })
@@ -287,13 +376,13 @@ object Network {
         }
     }
 
-    fun getWhiteList(callBack: BaseCallBack<WhiteListResult>){
+    fun getWhiteList(callBack: WhiteListCallBack<WhiteListResult>){
         val api: RespApi = provideSettingRetrofit().create(RespApi::class.java)
         val call: Call<WhiteListResult> = api.getWhiteList(Config.getAppConfig().appKey)
         call.enqueue(object : Callback<WhiteListResult>{
             override fun onResponse(call: Call<WhiteListResult>, response: Response<WhiteListResult>) {
                 if (response.body()!!.code == 200){
-                    callBack.requestSuccess(response.body()!!,0,0)
+                    callBack.requestSuccess(response.body()!!)
                 }else{
                     callBack.requestFail(response.body()!!.msg)
                 }
@@ -305,8 +394,7 @@ object Network {
         })
     }
 
-    fun addWhiteList(id:String?, callBack: BaseCallBack<WhiteListResult>){
-        val api: RespApi = provideSettingRetrofit().create(RespApi::class.java)
+    fun addWhiteList(id:String?, callBack: WhiteListCallBack<WhiteListResult>){
         val paramMap = HashMap<String?,String?>()
         if (id != null){
             paramMap["id"] = id
@@ -314,16 +402,58 @@ object Network {
         paramMap["app_key"] = Config.getAppConfig().appKey
         paramMap["ip"] = Config.getAppConfig().ip
 
+        val api: RespApi = provideSettingRetrofit().create(RespApi::class.java)
         val call: Call<WhiteListResult> = api.updateWhiteList(paramMap)
         call.enqueue(object : Callback<WhiteListResult>{
             override fun onResponse(call: Call<WhiteListResult>, response: Response<WhiteListResult>) {
                 if (response.body()!!.code == 200){
-                    callBack.requestSuccess(response.body()!!,0,0)
+                    callBack.requestSuccess(response.body()!!)
                 }else{
                     callBack.requestFail(response.body()!!.msg)
                 }
             }
             override fun onFailure(call: Call<WhiteListResult>, t: Throwable) {
+                callBack.requestFail(t.message)
+            }
+        })
+    }
+
+    private fun getProxyIp(amount:Int?,callBack: ProxyCallBack<ProxyResult>){
+        val paramMap = HashMap<String?,String?>()
+        paramMap["app_key"] = Config.getAppConfig().appKey
+        paramMap["num"] = amount.toString()
+        paramMap["port"] = "1"
+        paramMap["xy"] = "1"
+        paramMap["mr"] = "1"
+
+        val api: RespApi = provideSettingRetrofit().create(RespApi::class.java)
+        val call: Call<ProxyResult> = api.getProxyIp(paramMap)
+        call.enqueue(object : Callback<ProxyResult>{
+            override fun onResponse(call: Call<ProxyResult>, response: Response<ProxyResult>) {
+                if (response.body()!!.code == 200){
+                    callBack.requestSuccess(response.body()!!)
+                }else{
+                    callBack.requestFail(response.body()!!.msg)
+                }
+            }
+            override fun onFailure(call: Call<ProxyResult>, t: Throwable) {
+                callBack.requestFail(t.message)
+            }
+        })
+    }
+
+    fun checkFee(appKey:String?, callBack: CheckFeeCallBack<CheckFeeResult>){
+        val api: RespApi = provideSettingRetrofit().create(RespApi::class.java)
+        val call: Call<CheckFeeResult> = api.checkFee(appKey)
+        call.enqueue(object : Callback<CheckFeeResult>{
+            override fun onResponse(call: Call<CheckFeeResult>, response: Response<CheckFeeResult>) {
+                if (response.body()!!.code == 200){
+                    callBack.requestSuccess(response.body()!!)
+                }else{
+                    callBack.requestFail(response.body()!!.msg)
+                }
+            }
+            override fun onFailure(call: Call<CheckFeeResult>, t: Throwable) {
                 callBack.requestFail(t.message)
             }
         })
@@ -342,5 +472,11 @@ object Network {
         //修改/更新ip白名单，如果只传ip且ip未达到总使用量则会新增，否则请指定id值，更新对应id的白名单ip
         @GET("api/whitelist/update")
         fun updateWhiteList(@QueryMap param:HashMap<String?, String?>):Call<WhiteListResult>
+
+        @GET("api/ip")
+        fun getProxyIp(@QueryMap param:HashMap<String?, String?>):Call<ProxyResult>
+
+        @GET("api/product/list")
+        fun checkFee(@Query("app_key") key:String?):Call<CheckFeeResult>
     }
 }

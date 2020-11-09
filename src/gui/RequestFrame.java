@@ -108,6 +108,11 @@ public class RequestFrame extends JFrame {
             public void requestOnGoing(int count) {
 
             }
+
+            @Override
+            public void requestProxyError(String message) {
+                JOptionPane.showMessageDialog(RequestFrame.this, message, "失败",JOptionPane.WARNING_MESSAGE);
+            }
         });
     }
 
@@ -171,6 +176,11 @@ public class RequestFrame extends JFrame {
                     @Override
                     public void requestFail(String message) {
 
+                    }
+
+                    @Override
+                    public void requestProxyError(String message) {
+                        JOptionPane.showMessageDialog(RequestFrame.this, message, "失败",JOptionPane.WARNING_MESSAGE);
                     }
                 });
             }

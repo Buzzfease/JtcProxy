@@ -57,12 +57,24 @@ new FormModel {
 				} )
 				add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class java.awt.GridLayout ) {
 					"columns": 2
+					"hgap": 10
 				} ) {
 					name: "optionPanel"
-					add( new FormComponent( "javax.swing.JCheckBoxMenuItem" ) {
-						name: "checkBoxProxy"
-						"text": "开启代理"
-						addEvent( new FormEvent( "javax.swing.event.ChangeListener", "stateChanged", "checkBoxProxyStateChanged", true ) )
+					add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class java.awt.GridLayout ) {
+						"columns": 2
+						"hgap": 10
+					} ) {
+						name: "panel4"
+						add( new FormComponent( "javax.swing.JCheckBox" ) {
+							name: "checkBoxProxy"
+							"text": "开启代理"
+							addEvent( new FormEvent( "javax.swing.event.ChangeListener", "stateChanged", "checkBoxProxyStateChanged", true ) )
+						} )
+						add( new FormComponent( "javax.swing.JCheckBox" ) {
+							name: "checkBoxLimit"
+							"text": "限24小时"
+							addEvent( new FormEvent( "javax.swing.event.ChangeListener", "stateChanged", "checkBoxLimitStateChanged", true ) )
+						} )
 					} )
 					add( new FormComponent( "javax.swing.JButton" ) {
 						name: "buttonConfig"

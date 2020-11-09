@@ -4,6 +4,11 @@ import org.apache.poi.hssf.usermodel.HSSFWorkbook
 import org.apache.poi.openxml4j.opc.OPCPackage
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import java.io.FileInputStream
+import java.text.ParseException
+import java.text.SimpleDateFormat
+
+
+
 
 object CommonUtil {
     fun handleCarNo(input: String): String {
@@ -58,6 +63,18 @@ object CommonUtil {
             System.out.println(it)
         }
         return mList
+    }
+
+    fun parseTime(strTime: String): Long {
+        val format = SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
+        var time = 0L
+        try {
+            time = format.parse(strTime).time
+        } catch (e: ParseException) {
+            e.printStackTrace()
+            return -1
+        }
+        return time
     }
 
 }

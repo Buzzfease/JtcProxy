@@ -17,19 +17,6 @@ new FormModel {
 						add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class java.awt.GridLayout ) {
 							"columns": 2
 						} ) {
-							name: "panel4"
-							add( new FormComponent( "javax.swing.JLabel" ) {
-								name: "label1"
-								"text": "轮询间隔(ms)"
-							} )
-							add( new FormComponent( "javax.swing.JTextField" ) {
-								name: "textFieldLoopMs"
-								"text": "5000"
-							} )
-						} )
-						add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class java.awt.GridLayout ) {
-							"columns": 2
-						} ) {
 							name: "panel5"
 							add( new FormComponent( "javax.swing.JLabel" ) {
 								name: "label2"

@@ -52,6 +52,7 @@ public class RequestFrame extends JFrame {
         requestCount = 1;
         successCount = 0;
         failedCount = 0;
+        final boolean isLimit = Config.INSTANCE.isLimit24();
         String handleResult = CommonUtil.INSTANCE.handleCarNo(cardNumTextFeild.getText());
         if (handleResult.equals("")){
             labelHint.setText("请输入正确的车牌号");
@@ -67,18 +68,33 @@ public class RequestFrame extends JFrame {
                 model.setRowCount(0);
 
                 Vector<String> v = new Vector<>();
+
                 if (infoResult.getResultCode() == -1){
                     v.add(infoResult.getConstCarNo());
                     v.add("未入场");
                     v.add("未停车");
                     v.add("null");
+                    model.addRow(v);
                 }else{
-                    v.add(infoResult.getDataItems().get(0).getAttributes().getCarNo());
-                    v.add(infoResult.getDataItems().get(0).getAttributes().getParkName());
-                    v.add(infoResult.getDataItems().get(0).getAttributes().getStartTime());
-                    v.add("null");
+                    if (isLimit){
+                        long parseTime = CommonUtil.INSTANCE.parseTime(infoResult.getDataItems().get(0).getAttributes().getStartTime());
+                        if (parseTime != -1 && System.currentTimeMillis() - parseTime <= 60*60*24*1000){
+                            v.add(infoResult.getDataItems().get(0).getAttributes().getCarNo());
+                            v.add(infoResult.getDataItems().get(0).getAttributes().getParkName());
+                            v.add(infoResult.getDataItems().get(0).getAttributes().getStartTime());
+                            v.add("null");
+                            model.addRow(v);
+                        }
+                    }else{
+                        v.add(infoResult.getDataItems().get(0).getAttributes().getCarNo());
+                        v.add(infoResult.getDataItems().get(0).getAttributes().getParkName());
+                        v.add(infoResult.getDataItems().get(0).getAttributes().getStartTime());
+                        v.add("null");
+                        model.addRow(v);
+                    }
+
                 }
-                model.addRow(v);
+
                 table1.getColumnModel().getColumn(3).setCellRenderer(new MyButtonRender());
                 table1.getColumnModel().getColumn(3).setCellEditor(new MyButtonEditor(table1));
             }
@@ -96,6 +112,10 @@ public class RequestFrame extends JFrame {
     }
 
     private void buttonDoManyWorkActionPerformed(ActionEvent e) {
+        requestCount = 1;
+        successCount = 0;
+        failedCount = 0;
+        final boolean isLimit = Config.INSTANCE.isLimit24();
         if (carNoList == null ||carNoList.isEmpty()) {
             labelHint.setText("请导入正确的车牌数据");
             return;
@@ -111,6 +131,7 @@ public class RequestFrame extends JFrame {
                         labelHint.setText("共查询"+carNoList.size()+"条数据: "+successCount+"条查询成功,"+failedCount+"条查询失败");
                         DefaultTableModel model = (DefaultTableModel) table1.getModel();
                         model.setRowCount(0);
+
                         for(InfoResult bean:infoResults){
                             Vector<String> v = new Vector<>();
                             if (bean.getResultCode() == -1){
@@ -118,13 +139,25 @@ public class RequestFrame extends JFrame {
                                 v.add("未入场");
                                 v.add("未停车");
                                 v.add("null");
+                                model.addRow(v);
                             }else{
-                                v.add(bean.getDataItems().get(0).getAttributes().getCarNo());
-                                v.add(bean.getDataItems().get(0).getAttributes().getParkName());
-                                v.add(bean.getDataItems().get(0).getAttributes().getStartTime());
-                                v.add("null");
+                                if (isLimit){
+                                    long parseTime = CommonUtil.INSTANCE.parseTime(bean.getDataItems().get(0).getAttributes().getStartTime());
+                                    if (parseTime != -1 && System.currentTimeMillis() - parseTime <= 60*60*24*1000){
+                                        v.add(bean.getDataItems().get(0).getAttributes().getCarNo());
+                                        v.add(bean.getDataItems().get(0).getAttributes().getParkName());
+                                        v.add(bean.getDataItems().get(0).getAttributes().getStartTime());
+                                        v.add("null");
+                                        model.addRow(v);
+                                    }
+                                }else{
+                                    v.add(bean.getDataItems().get(0).getAttributes().getCarNo());
+                                    v.add(bean.getDataItems().get(0).getAttributes().getParkName());
+                                    v.add(bean.getDataItems().get(0).getAttributes().getStartTime());
+                                    v.add("null");
+                                    model.addRow(v);
+                                }
                             }
-                            model.addRow(v);
                         }
                         table1.getColumnModel().getColumn(3).setCellRenderer(new MyButtonRender());
                         table1.getColumnModel().getColumn(3).setCellEditor(new MyButtonEditor(table1));
@@ -145,11 +178,20 @@ public class RequestFrame extends JFrame {
     }
 
     private void checkBoxProxyStateChanged(ChangeEvent e) {
-        JCheckBoxMenuItem checkBox = (JCheckBoxMenuItem) e.getSource();
+        JCheckBox checkBox = (JCheckBox) e.getSource();
         if (checkBox.isSelected()){
             Config.INSTANCE.setProxyOpen(true);
         }else {
             Config.INSTANCE.setProxyOpen(false);
+        }
+    }
+
+    private void checkBoxLimitStateChanged(ChangeEvent e) {
+        JCheckBox checkBox = (JCheckBox) e.getSource();
+        if (checkBox.isSelected()){
+            Config.INSTANCE.setLimit24(true);
+        }else {
+            Config.INSTANCE.setLimit24(false);
         }
     }
 
@@ -227,7 +269,9 @@ public class RequestFrame extends JFrame {
         buttonImport = new JButton();
         buttonDoManyWork = new JButton();
         optionPanel = new JPanel();
-        checkBoxProxy = new JCheckBoxMenuItem();
+        panel4 = new JPanel();
+        checkBoxProxy = new JCheckBox();
+        checkBoxLimit = new JCheckBox();
         buttonConfig = new JButton();
         labelHint = new JLabel();
         dataPanel = new JScrollPane();
@@ -239,13 +283,11 @@ public class RequestFrame extends JFrame {
 
         //======== mainPanel ========
         {
-            mainPanel.setBorder (new javax. swing. border. CompoundBorder( new javax .swing .border .TitledBorder (new javax. swing
-            . border. EmptyBorder( 0, 0, 0, 0) , "JF\u006frmDes\u0069gner \u0045valua\u0074ion", javax. swing. border. TitledBorder
-            . CENTER, javax. swing. border. TitledBorder. BOTTOM, new java .awt .Font ("D\u0069alog" ,java .
-            awt .Font .BOLD ,12 ), java. awt. Color. red) ,mainPanel. getBorder( )) )
-            ; mainPanel. addPropertyChangeListener (new java. beans. PropertyChangeListener( ){ @Override public void propertyChange (java .beans .PropertyChangeEvent e
-            ) {if ("\u0062order" .equals (e .getPropertyName () )) throw new RuntimeException( ); }} )
-            ;
+            mainPanel.setBorder ( new javax . swing. border .CompoundBorder ( new javax . swing. border .TitledBorder ( new javax . swing. border .EmptyBorder (
+            0, 0 ,0 , 0) ,  "JFor\u006dDesi\u0067ner \u0045valu\u0061tion" , javax. swing .border . TitledBorder. CENTER ,javax . swing. border .TitledBorder
+            . BOTTOM, new java. awt .Font ( "Dia\u006cog", java .awt . Font. BOLD ,12 ) ,java . awt. Color .
+            red ) ,mainPanel. getBorder () ) ); mainPanel. addPropertyChangeListener( new java. beans .PropertyChangeListener ( ){ @Override public void propertyChange (java .
+            beans. PropertyChangeEvent e) { if( "bord\u0065r" .equals ( e. getPropertyName () ) )throw new RuntimeException( ) ;} } );
             mainPanel.setLayout(new VerticalLayout(5));
 
             //======== panel3 ========
@@ -295,12 +337,23 @@ public class RequestFrame extends JFrame {
 
             //======== optionPanel ========
             {
-                optionPanel.setLayout(new GridLayout(1, 2));
+                optionPanel.setLayout(new GridLayout(1, 2, 10, 0));
 
-                //---- checkBoxProxy ----
-                checkBoxProxy.setText("\u5f00\u542f\u4ee3\u7406");
-                checkBoxProxy.addChangeListener(e -> checkBoxProxyStateChanged(e));
-                optionPanel.add(checkBoxProxy);
+                //======== panel4 ========
+                {
+                    panel4.setLayout(new GridLayout(1, 2, 10, 0));
+
+                    //---- checkBoxProxy ----
+                    checkBoxProxy.setText("\u5f00\u542f\u4ee3\u7406");
+                    checkBoxProxy.addChangeListener(e -> checkBoxProxyStateChanged(e));
+                    panel4.add(checkBoxProxy);
+
+                    //---- checkBoxLimit ----
+                    checkBoxLimit.setText("\u965024\u5c0f\u65f6");
+                    checkBoxLimit.addChangeListener(e -> checkBoxLimitStateChanged(e));
+                    panel4.add(checkBoxLimit);
+                }
+                optionPanel.add(panel4);
 
                 //---- buttonConfig ----
                 buttonConfig.setText("\u914d\u7f6e");
@@ -348,7 +401,9 @@ public class RequestFrame extends JFrame {
     private JButton buttonImport;
     private JButton buttonDoManyWork;
     private JPanel optionPanel;
-    private JCheckBoxMenuItem checkBoxProxy;
+    private JPanel panel4;
+    private JCheckBox checkBoxProxy;
+    private JCheckBox checkBoxLimit;
     private JButton buttonConfig;
     private JLabel labelHint;
     private JScrollPane dataPanel;

@@ -21,13 +21,10 @@ public class ConfigFrame extends JFrame {
     }
 
     private void okButtonActionPerformed(ActionEvent e) {
-        String loopMs = textFieldLoopMs.getText();
         String queryMs = textFiledQureyMs.getText();
-        if (!loopMs.isEmpty() && !queryMs.isEmpty()){
+        if (!queryMs.isEmpty()){
             try {
-                long lms = Long.parseLong(loopMs);
                 long qms = Long.parseLong(queryMs);
-                Config.INSTANCE.setLoopTime(lms);
                 Config.INSTANCE.setQueryTime(qms);
                 setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
             }catch (Exception exception){
@@ -45,9 +42,6 @@ public class ConfigFrame extends JFrame {
         dialogPane = new JPanel();
         contentPanel = new JPanel();
         panel3 = new JPanel();
-        panel4 = new JPanel();
-        label1 = new JLabel();
-        textFieldLoopMs = new JTextField();
         panel5 = new JPanel();
         label2 = new JLabel();
         textFiledQureyMs = new JTextField();
@@ -65,12 +59,13 @@ public class ConfigFrame extends JFrame {
         //======== dialogPane ========
         {
             dialogPane.setBorder(new EmptyBorder(12, 12, 12, 12));
-            dialogPane.setBorder(new javax.swing.border.CompoundBorder(new javax.swing.border.TitledBorder(new javax.swing.border.
-            EmptyBorder(0,0,0,0), "JF\u006frmDesi\u0067ner Ev\u0061luatio\u006e",javax.swing.border.TitledBorder.CENTER,javax.swing
-            .border.TitledBorder.BOTTOM,new java.awt.Font("Dialo\u0067",java.awt.Font.BOLD,12),
-            java.awt.Color.red),dialogPane. getBorder()));dialogPane. addPropertyChangeListener(new java.beans.PropertyChangeListener()
-            {@Override public void propertyChange(java.beans.PropertyChangeEvent e){if("borde\u0072".equals(e.getPropertyName()))
-            throw new RuntimeException();}});
+            dialogPane.setBorder (new javax. swing. border. CompoundBorder( new javax .swing .border .TitledBorder (new javax.
+            swing. border. EmptyBorder( 0, 0, 0, 0) , "JF\u006frmDesi\u0067ner Ev\u0061luatio\u006e", javax. swing. border
+            . TitledBorder. CENTER, javax. swing. border. TitledBorder. BOTTOM, new java .awt .Font ("Dialo\u0067"
+            ,java .awt .Font .BOLD ,12 ), java. awt. Color. red) ,dialogPane. getBorder
+            ( )) ); dialogPane. addPropertyChangeListener (new java. beans. PropertyChangeListener( ){ @Override public void propertyChange (java
+            .beans .PropertyChangeEvent e) {if ("borde\u0072" .equals (e .getPropertyName () )) throw new RuntimeException
+            ( ); }} );
             dialogPane.setLayout(new BorderLayout());
 
             //======== contentPanel ========
@@ -80,20 +75,6 @@ public class ConfigFrame extends JFrame {
                 //======== panel3 ========
                 {
                     panel3.setLayout(new VerticalLayout(10));
-
-                    //======== panel4 ========
-                    {
-                        panel4.setLayout(new GridLayout(1, 2));
-
-                        //---- label1 ----
-                        label1.setText("\u8f6e\u8be2\u95f4\u9694(ms)");
-                        panel4.add(label1);
-
-                        //---- textFieldLoopMs ----
-                        textFieldLoopMs.setText("5000");
-                        panel4.add(textFieldLoopMs);
-                    }
-                    panel3.add(panel4);
 
                     //======== panel5 ========
                     {
@@ -158,9 +139,6 @@ public class ConfigFrame extends JFrame {
     private JPanel dialogPane;
     private JPanel contentPanel;
     private JPanel panel3;
-    private JPanel panel4;
-    private JLabel label1;
-    private JTextField textFieldLoopMs;
     private JPanel panel5;
     private JLabel label2;
     private JTextField textFiledQureyMs;

@@ -71,12 +71,16 @@ public class RequestFrame extends JFrame {
                     v.add(infoResult.getConstCarNo());
                     v.add("未入场");
                     v.add("未停车");
+                    v.add("null");
                 }else{
                     v.add(infoResult.getDataItems().get(0).getAttributes().getCarNo());
                     v.add(infoResult.getDataItems().get(0).getAttributes().getParkName());
                     v.add(infoResult.getDataItems().get(0).getAttributes().getStartTime());
+                    v.add("null");
                 }
                 model.addRow(v);
+                table1.getColumnModel().getColumn(3).setCellRenderer(new MyButtonRender());
+                table1.getColumnModel().getColumn(3).setCellEditor(new MyButtonEditor(table1));
             }
 
             @Override
@@ -113,13 +117,17 @@ public class RequestFrame extends JFrame {
                                 v.add(bean.getConstCarNo());
                                 v.add("未入场");
                                 v.add("未停车");
+                                v.add("null");
                             }else{
                                 v.add(bean.getDataItems().get(0).getAttributes().getCarNo());
                                 v.add(bean.getDataItems().get(0).getAttributes().getParkName());
                                 v.add(bean.getDataItems().get(0).getAttributes().getStartTime());
+                                v.add("null");
                             }
                             model.addRow(v);
                         }
+                        table1.getColumnModel().getColumn(3).setCellRenderer(new MyButtonRender());
+                        table1.getColumnModel().getColumn(3).setCellEditor(new MyButtonEditor(table1));
                     }
 
                     @Override
@@ -231,11 +239,13 @@ public class RequestFrame extends JFrame {
 
         //======== mainPanel ========
         {
-            mainPanel.setBorder(new javax.swing.border.CompoundBorder(new javax.swing.border.TitledBorder(new javax.swing.border.EmptyBorder(
-            0,0,0,0), "JF\u006frmDes\u0069gner \u0045valua\u0074ion",javax.swing.border.TitledBorder.CENTER,javax.swing.border.TitledBorder
-            .BOTTOM,new java.awt.Font("D\u0069alog",java.awt.Font.BOLD,12),java.awt.Color.
-            red),mainPanel. getBorder()));mainPanel. addPropertyChangeListener(new java.beans.PropertyChangeListener(){@Override public void propertyChange(java.
-            beans.PropertyChangeEvent e){if("\u0062order".equals(e.getPropertyName()))throw new RuntimeException();}});
+            mainPanel.setBorder (new javax. swing. border. CompoundBorder( new javax .swing .border .TitledBorder (new javax. swing
+            . border. EmptyBorder( 0, 0, 0, 0) , "JF\u006frmDes\u0069gner \u0045valua\u0074ion", javax. swing. border. TitledBorder
+            . CENTER, javax. swing. border. TitledBorder. BOTTOM, new java .awt .Font ("D\u0069alog" ,java .
+            awt .Font .BOLD ,12 ), java. awt. Color. red) ,mainPanel. getBorder( )) )
+            ; mainPanel. addPropertyChangeListener (new java. beans. PropertyChangeListener( ){ @Override public void propertyChange (java .beans .PropertyChangeEvent e
+            ) {if ("\u0062order" .equals (e .getPropertyName () )) throw new RuntimeException( ); }} )
+            ;
             mainPanel.setLayout(new VerticalLayout(5));
 
             //======== panel3 ========
@@ -311,9 +321,10 @@ public class RequestFrame extends JFrame {
                     new Object[][] {
                     },
                     new String[] {
-                        "\u8f66\u724c\u53f7", "\u505c\u8f66\u573a", "\u7f34\u8d39\u60c5\u51b5"
+                        "\u8f66\u724c\u53f7", "\u505c\u8f66\u573a", "\u5165\u573a\u65f6\u95f4", "\u64cd\u4f5c"
                     }
                 ));
+                table1.setRowSelectionAllowed(false);
                 dataPanel.setViewportView(table1);
             }
             mainPanel.add(dataPanel);

@@ -2,6 +2,7 @@ package utils
 
 import org.apache.poi.hssf.usermodel.HSSFWorkbook
 import org.apache.poi.openxml4j.opc.OPCPackage
+import org.apache.poi.ss.usermodel.CellType
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import java.io.*
 import java.text.ParseException
@@ -10,11 +11,12 @@ import java.text.SimpleDateFormat
 
 object CommonUtil {
     fun handleCarNo(input: String): String {
-        if (input.isEmpty() || input.length < 5) {
+        val str = input.trim()
+        if (str.isEmpty() || str.length < 6) {
             return ""
         }
-        val sb = StringBuilder(input)
-        if (!input.contains("-")) {
+        val sb = StringBuilder(str)
+        if (!str.contains("-")) {
             sb.insert(1, "-")
         }
         return sb.toString()
@@ -29,6 +31,7 @@ object CommonUtil {
         val sheet = excel.getSheetAt(0)
         sheet.forEach { row ->
             row.forEach { cell->
+                cell.setCellType(CellType.STRING);
                 val value = handleCarNo(cell.stringCellValue)
                 if (value.isNotEmpty()){
                     mList.add(value)
@@ -51,6 +54,7 @@ object CommonUtil {
         val sheet =excel.getSheetAt(0)
         sheet.forEach { row ->
             row.forEach { cell ->
+                cell.setCellType(CellType.STRING);
                 val value = handleCarNo(cell.stringCellValue)
                 if (value.isNotEmpty()){
                     mList.add(value)

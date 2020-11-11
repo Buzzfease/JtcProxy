@@ -23,9 +23,6 @@ import utils.CommonUtil;
  * @author unknown
  */
 public class RequestFrame extends JFrame {
-    int requestCount = 1;
-    int successCount = 0;
-    int failedCount = 0;
     ArrayList<String> carNoList;
 
     public RequestFrame() {
@@ -33,11 +30,15 @@ public class RequestFrame extends JFrame {
     }
 
     private void setStateReady(){
+        Network.INSTANCE.setQuerying(false);
         buttonDoWork.setEnabled(true);
         buttonDoWork.setText("查询");
         buttonDoManyWork.setEnabled(true);
         buttonDoManyWork.setText("批量查询");
         buttonImport.setEnabled(true);
+        buttonConfig.setEnabled(true);
+        checkBoxLimit.setEnabled(true);
+        checkBoxProxy.setEnabled(true);
     }
 
     private void setStateDisable(){
@@ -46,12 +47,24 @@ public class RequestFrame extends JFrame {
         buttonDoManyWork.setEnabled(false);
         buttonDoManyWork.setText("批量查询");
         buttonImport.setEnabled(false);
+        buttonConfig.setEnabled(false);
+        checkBoxLimit.setEnabled(false);
+        checkBoxProxy.setEnabled(false);
+    }
+
+    private void setStateManyQuerying(){
+        Network.INSTANCE.setQuerying(true);
+        buttonDoWork.setEnabled(false);
+        buttonDoWork.setText("查询");
+        buttonDoManyWork.setEnabled(true);
+        buttonDoManyWork.setText("停止查询");
+        buttonImport.setEnabled(false);
+        buttonConfig.setEnabled(false);
+        checkBoxLimit.setEnabled(false);
+        checkBoxProxy.setEnabled(false);
     }
 
     private void buttonDoWorkActionPerformed(ActionEvent e) {
-        requestCount = 1;
-        successCount = 0;
-        failedCount = 0;
         final boolean isLimit = Config.INSTANCE.isLimit24();
         String handleResult = CommonUtil.INSTANCE.handleCarNo(cardNumTextFeild.getText());
         if (handleResult.equals("")){
@@ -59,17 +72,18 @@ public class RequestFrame extends JFrame {
             return;
         }
         //start
+        DefaultTableModel model = (DefaultTableModel) table1.getModel();
+        model.setRowCount(0);
         labelHint.setText("查询中...");
         Network.INSTANCE.querySingle(handleResult, new Network.BaseCallBack<InfoResult>() {
             @Override
-            public void requestSuccess(InfoResult infoResult, int successCount, int failedCount) {
+            public void requestSuccess(InfoResult infoResult, int current, int successCount, int failedCount) {
                 labelHint.setText("查询成功");
-                DefaultTableModel model = (DefaultTableModel) table1.getModel();
-                model.setRowCount(0);
-
                 Vector<String> v = new Vector<>();
 
-                if (infoResult.getResultCode() == -1){
+                if (infoResult.getResultCode() != 0
+                        ||infoResult.getDataItems() == null
+                        ||infoResult.getDataItems().isEmpty()){
                     v.add(infoResult.getConstCarNo());
                     v.add("未停车");
                     v.add("未入场");
@@ -114,7 +128,12 @@ public class RequestFrame extends JFrame {
             }
 
             @Override
-            public void requestOnGoing(int count) {
+            public void requestOnGoing(int current, int successCount, int failedCount) {
+
+            }
+
+            @Override
+            public void requestComplete(int current, int successCount, int failedCount) {
 
             }
 
@@ -126,85 +145,98 @@ public class RequestFrame extends JFrame {
     }
 
     private void buttonDoManyWorkActionPerformed(ActionEvent e) {
-        requestCount = 1;
-        successCount = 0;
-        failedCount = 0;
-        final boolean isLimit = Config.INSTANCE.isLimit24();
-        if (carNoList == null ||carNoList.isEmpty()) {
-            labelHint.setText("请导入正确的车牌数据");
-            return;
-        }
-        //start
-        labelHint.setText("查询中...");
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                Network.INSTANCE.queryMany(carNoList, new Network.BaseCallBack<ArrayList<InfoResult>>() {
-                    @Override
-                    public void requestSuccess(ArrayList<InfoResult> infoResults, int successCount, int failedCount) {
-                        labelHint.setText("共查询"+carNoList.size()+"条数据: "+successCount+"条查询成功,"+failedCount+"条查询失败");
-                        DefaultTableModel model = (DefaultTableModel) table1.getModel();
-                        model.setRowCount(0);
-
-                        for(InfoResult bean:infoResults){
-                            Vector<String> v = new Vector<>();
-                            if (bean.getResultCode() == -1){
-                                v.add(bean.getConstCarNo());
-                                v.add("未停车");
-                                v.add("未入场");
-                                v.add("操作");
-                                model.addRow(v);
-                            }else{
-                                if (isLimit){
-                                    long parseTime;
-                                    if (bean.getDataItems().get(0).getAttributes().getStartTime() == null
-                                            || bean.getDataItems().get(0).getAttributes().getStartTime().isEmpty()){
-                                        parseTime = -1;
+        if (Network.INSTANCE.isQuerying()){
+            setStateReady();
+        }else{
+            final boolean isLimit = Config.INSTANCE.isLimit24();
+            if (carNoList == null ||carNoList.isEmpty()) {
+                labelHint.setText("请导入正确的车牌数据");
+                return;
+            }
+            //start
+            DefaultTableModel model = (DefaultTableModel) table1.getModel();
+            model.setRowCount(0);
+            labelHint.setText("查询中...");
+            setStateManyQuerying();
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    Network.INSTANCE.queryMany(carNoList, new Network.BaseCallBack<InfoResult>() {
+                        @Override
+                        public void requestSuccess(InfoResult infoResult, int current, int successCount, int failedCount) {
+                            if (Network.INSTANCE.isQuerying()){
+                                labelHint.setText("已查询"+current+"条数据: "+successCount+"条查询成功,"+failedCount+"条查询失败");
+                                Vector<String> v = new Vector<>();
+                                if (infoResult.getResultCode() != 0
+                                        ||infoResult.getDataItems() == null
+                                        ||infoResult.getDataItems().isEmpty()){
+                                    v.add(infoResult.getConstCarNo());
+                                    v.add("未停车");
+                                    v.add("未入场");
+                                    v.add("操作");
+                                    model.addRow(v);
+                                }else{
+                                    if (isLimit){
+                                        long parseTime;
+                                        if (infoResult.getDataItems().get(0).getAttributes().getStartTime() == null
+                                                || infoResult.getDataItems().get(0).getAttributes().getStartTime().isEmpty()){
+                                            parseTime = -1;
+                                        }else{
+                                            parseTime = CommonUtil.INSTANCE.parseTime(infoResult.getDataItems().get(0).getAttributes().getStartTime());
+                                        }
+                                        if (parseTime != -1 && System.currentTimeMillis() - parseTime <= 60*60*24*1000){
+                                            v.add(infoResult.getDataItems().get(0).getAttributes().getCarNo());
+                                            v.add(infoResult.getDataItems().get(0).getAttributes().getParkName());
+                                            v.add(infoResult.getDataItems().get(0).getAttributes().getStartTime());
+                                            v.add("操作");
+                                            model.addRow(v);
+                                        }
                                     }else{
-                                        parseTime = CommonUtil.INSTANCE.parseTime(bean.getDataItems().get(0).getAttributes().getStartTime());
-                                    }
-                                    if (parseTime != -1 && System.currentTimeMillis() - parseTime <= 60*60*24*1000){
-                                        v.add(bean.getDataItems().get(0).getAttributes().getCarNo());
-                                        v.add(bean.getDataItems().get(0).getAttributes().getParkName());
-                                        v.add(bean.getDataItems().get(0).getAttributes().getStartTime());
+                                        v.add(infoResult.getDataItems().get(0).getAttributes().getCarNo());
+                                        v.add(infoResult.getDataItems().get(0).getAttributes().getParkName());
+                                        if (infoResult.getDataItems().get(0).getAttributes().getStartTime() == null
+                                                || infoResult.getDataItems().get(0).getAttributes().getStartTime().isEmpty()){
+                                            v.add("未入场");
+                                        }else {
+                                            v.add(infoResult.getDataItems().get(0).getAttributes().getStartTime());
+                                        }
                                         v.add("操作");
                                         model.addRow(v);
                                     }
-                                }else{
-                                    v.add(bean.getDataItems().get(0).getAttributes().getCarNo());
-                                    v.add(bean.getDataItems().get(0).getAttributes().getParkName());
-                                    if (bean.getDataItems().get(0).getAttributes().getStartTime() == null
-                                            || bean.getDataItems().get(0).getAttributes().getStartTime().isEmpty()){
-                                        v.add("未入场");
-                                    }else {
-                                        v.add(bean.getDataItems().get(0).getAttributes().getStartTime());
-                                    }
-                                    v.add("操作");
-                                    model.addRow(v);
                                 }
+                                table1.getColumnModel().getColumn(3).setCellRenderer(new MyButtonRender());
+                                table1.getColumnModel().getColumn(3).setCellEditor(new MyButtonEditor(table1));
+                            }
+
+                        }
+
+                        @Override
+                        public void requestOnGoing(int current, int successCount, int failedCount) {
+                            if (Network.INSTANCE.isQuerying()){
+                                labelHint.setText("已查询"+current+"条数据: "+successCount+"条查询成功,"+failedCount+"条查询失败");
                             }
                         }
-                        table1.getColumnModel().getColumn(3).setCellRenderer(new MyButtonRender());
-                        table1.getColumnModel().getColumn(3).setCellEditor(new MyButtonEditor(table1));
-                    }
 
-                    @Override
-                    public void requestOnGoing(int count) {
-                        labelHint.setText("共"+carNoList.size()+"条数据: 已查询,"+count+"条数据");
-                    }
+                        @Override
+                        public void requestFail(String message) {
 
-                    @Override
-                    public void requestFail(String message) {
+                        }
 
-                    }
+                        @Override
+                        public void requestComplete(int current, int successCount, int failedCount) {
+                            if (Network.INSTANCE.isQuerying()){
+                                setStateReady();
+                            }
+                        }
 
-                    @Override
-                    public void requestProxyError(String message) {
-                        JOptionPane.showMessageDialog(RequestFrame.this, message, "失败",JOptionPane.WARNING_MESSAGE);
-                    }
-                });
-            }
-        }).start();
+                        @Override
+                        public void requestProxyError(String message) {
+                            JOptionPane.showMessageDialog(RequestFrame.this, message, "失败",JOptionPane.WARNING_MESSAGE);
+                        }
+                    });
+                }
+            }).start();
+        }
     }
 
     private void checkBoxProxyStateChanged(ChangeEvent e) {
@@ -261,12 +293,12 @@ public class RequestFrame extends JFrame {
                         setStateReady();
                         fileTextFiled.setText(file.getAbsolutePath());
                         
-                        StringBuilder sb = new StringBuilder();
                         for(String num:carNoList){
+                            StringBuilder sb = new StringBuilder();
                             sb.append(num);
                             sb.append("\n");
+                            textAreaImport.append(sb.toString());
                         }
-                        textAreaImport.setText(sb.toString());
                     }
                 });
                 dialogThread.start();
